@@ -9,7 +9,3 @@ class Constraints(ABC):
         self.r = r
         self.b = b
         super().__init__()
-
-    @abstractmethod
-    def do_something(self):
-        pass
