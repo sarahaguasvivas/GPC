@@ -65,31 +65,40 @@ class NeuralNetworkPredictor(DynamicModel):
         return 0.0
 
     def compute_hessian(self, n,  del_u, u):
+        # abstract
         for i in range(self.Nu):
             for j in range(self.Nu):
-                self.Hessian[i, j] = self._first_term(i, j, u, n) + self._second_term(i, j, n) + \
+                self.Hessian[i, j] = self._first_term(i, j, u, n) + \
+                                                self._second_term(i, j, n) + \
                                                     self._third_term(i, j, n)
         return self.Hessian
 
+    def compute_jacobian(self, n, del_u, u):
+        # abstract
+        weights = self.model.layers[-1].get_weights()[0]
+        biases = self.model.layers[-1].get_weights()[1]
+        sum_output= [0.0]*self.Nu
+        for h in range(self.Nu):
+            for j in range(self.model.layers[-1].input_shape[1]):
+                for i in range(self.nd):
+                    if (self.K - self.Nu) < i:
+                        sum_output[h] += weights[j, i] * kronecker_delta(self.K-i, h)
+                    else:
+                        sum_output[h] += weights[j, i] * kronecker_delta(self.Nu, h)
+        return sum_output
 
-    def compute_function(self, del_u, u, n):
-        sum_s= 0.0
-        for j in range(self.N2):
-            sum_s+= (self.ym[n+j] - self.yn[n+j])**2
-
-        for j in range(self.Nu):
-            sum_s += self.Cost.lambd[j] * del_u[n+j]**2 + \
-                     self.Cost.s / (u[n+j] + self.Cost.r/2.0 - self.Cost.b) + \
-                                self.Cost.s / (self.Cost.r / 2.0 +  \
-                                        self.Cost.b - u[n+j]) - 4.0/self.Cost.r
-        return sum_s
+    def compute_cost(self, del_u, u):
+        # abstract
+        return self.Cost.compute_cost(del_u, u)
 
     def measure(self, u):
+        # abstract
         model_signal = load_model('../model_data/neural_network_1.hdf5')
         measure = model_signal.predict(u, batch_size=1)
         return measure
 
     def predict(self, x):
+        # abstract
         # x is a vector with the sensor measurements and the current moves:
         return model.predict(x, batch_size=1)
 

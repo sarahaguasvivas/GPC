@@ -1,30 +1,34 @@
 import numpy as np
+from .optimizer import *
 from cost.neural_network_cost import *
 from dyno_model.neural_network_predictor import *
 
 class NewtonRaphson(Optimizer):
 
-    def __init__(self, cost : Cost, d_model : NeuralNetworkPredictor):
+    def __init__(self, cost : Cost, d_model):
         self.cost = cost
         self.d_model = d_model
         super().__init__()
 
-    def __fsolve_newton(self, F, J, u0, rtol=1e-10, maxit=8, verbose=False):
+    def __fsolve_newton(self, nth_timestep, del_u, u0, rtol=1e-10, maxit=8, verbose=False):
         """
         Jed Brown's algebraic solver
         """
         u = u0.copy()
-        Fu = F(u)
-        norm0 = numpy.linalg.norm(Fu)
-        enorm_last = numpy.linalg.norm(u - numpy.array([1,1]))
+        Fu = self.d_model.compute_cost(del_u, u)
+        norm0 = np.linalg.norm(Fu)
+        enorm_last = np.linalg.norm(u - np.array([1]*len(u)))
 
         for i in range(maxit):
-            du = -numpy.linalg.solve(J(u), Fu)
+            Ju = self.d_model.compute_hessian(nth_timestep, del_u, u)
+            print(Fu)
+            du = -np.linalg.solve(Ju, Fu)
             u += du
-            Fu = F(u)
-            norm = numpy.linalg.norm(Fu)
+            Fu = self.d_model.compute_cost(del_u, u)
+            print(Ju, Fu)
+            norm = np.linalg.norm(Fu)
             if verbose:
-                enorm = numpy.linalg.norm(u - numpy.array([1,1]))
+                enorm = np.linalg.norm(u - np.array([1]*len(u)))
                 print('Newton {:d} anorm {:6.2e} rnorm {:6.2e} eratio {:6.2f}'.
                       format(i+1, norm, norm/norm0, enorm/enorm_last**2))
                 enorm_last = enorm
@@ -34,9 +38,7 @@ class NewtonRaphson(Optimizer):
 
     def optimize(self, n, del_u, u):
        """ This is taken from fsolve_newton in """
-        F = d_model.compute_function(n, del_u, u)
-        J = d_model.compute_hessian(del_u, u)
-        self.__fsolve_newton(F, J, u, rtol=1e-8, maxit = 8, verbose=True)
+       self.__fsolve_newton(n, del_u, u, rtol=1e-8, maxit = 8, verbose=True)
 
 
 

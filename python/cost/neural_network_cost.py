@@ -15,32 +15,36 @@ class NN_Cost(Cost):
         b       : offset of the range
         """
         self.d_model = dynamic_model
+        self.N1 = dynamic_model.N1
         self.N2 = dynamic_model.N2
         self.Nu = dynamic_model.Nu
         self.ym = dynamic_model.ym
         self.yn = dynamic_model.yn
-        self.lambd = lambd
+        self.lambd = dynamic_model.lambd
         self.s = self.d_model.constraints.s
         self.r = self.d_model.constraints.r
         self.b = self.d_model.constraints.b
         self.cost= 0.0
         super().__init__()
 
-    def compute_cost(self, n : int, del_u : list, u : list):
+    def compute_cost(self, del_u : list, u : list):
         """
         del_u is a list of the element wise differences between current and
         previous control inputs
         n is an int that represents the current discrete timestep
         """
+        print("ym: ", self.ym, "yn: ", self.yn)
         self.cost = 0.0
-        for j in range(self.N1, self.N2):
-            self.cost += (self.ym[n + j] - self.yn[n+j])**2
+
+        # FIXME : this is supposed to be from N1 to N2
+        for j in range(self.Nu):
+            self.cost += (self.ym[j] - self.yn[j])**2
 
         for j in range(self.Nu):
-            self.cost += self.lambd[j][del_u[n+j]]**2
+            self.cost += self.lambd[j]*(del_u[j])**2
 
         for j in range(self.Nu):
-            self.cost += s/(u[n+j] + r / 2.0 - b) + s / (r/2.0 + b - u[n+j]) - 4.0 / r
+            self.cost += self.s/(u[j] + self.r / 2.0 - self.b) + self.s / (self.r/2.0 + self.b - u[j]) - 4.0 / self.r
 
         return self.cost
 

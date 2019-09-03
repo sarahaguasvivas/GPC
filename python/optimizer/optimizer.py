@@ -6,4 +6,5 @@ class Optimizer(ABC):
 
     @abstractmethod
     def optimize(self, u_n):
+        pass
 
