@@ -3,7 +3,7 @@ from dyno_model.neural_network_predictor import *
 import constraints.constraints as constraints
 
 class NN_Cost(Cost):
-    def __init__(self, dynamic_model : NeuralNetworkPredictor, lambd : list, constraint : constraints):
+    def __init__(self, dynamic_model, lambd : list):
         """
         N1      : minimum costing horizon
         N2      : maximum costing horizon
@@ -20,9 +20,9 @@ class NN_Cost(Cost):
         self.ym = dynamic_model.ym
         self.yn = dynamic_model.yn
         self.lambd = lambd
-        self.s = constraint.s
-        self.r = constraint.r
-        self.b = constraint.b
+        self.s = self.d_model.constraints.s
+        self.r = self.d_model.constraints.r
+        self.b = self.d_model.constraints.b
         self.cost= 0.0
         super().__init__()
 
