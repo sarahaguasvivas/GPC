@@ -61,12 +61,25 @@ class NeuralNetworkPredictor(DynamicModel):
     def _third_term(self, h, m):
         return 0.0
 
-    def compute_hessian(self):
+    def compute_hessian(self, del_u, u):
         for i in range(self.Nu):
             for j in range(self.Nu):
-                self.Hessian[i, j] = self._first_term(i, j) + self._second_term(i, j) + \
+                self.Hessian[i, j] = self._first_term(i, j, u) + self._second_term(i, j) + \
                                                     self._third_term(i, j)
         return self.Hessian
+
+
+    def compute_function(self, n, del_u, u):
+        sum_s= 0.0
+        for j in range(self.N2):
+            sum_s+= (self.ym[n+j] - self.yn[n+j])**2
+
+        for j in range(self.Nu):
+            sum_s += self.Cost.lambd[j] * del_u[n+j]**2 + \
+                     self.Cost.s / (u[n+j] + self.Cost.r/2.0 - self.Cost.b) + \
+                                self.Cost.s / (self.Cost.r / 2.0 +  \
+                                        self.Cost.b - u[n+j]) - 4.0/self.Cost.r
+        return sum_s
 
     def predict(self, x):
         # x is a vector with the sensor measurements and the current moves:

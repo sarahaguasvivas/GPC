@@ -9,11 +9,15 @@ class NewtonRaphson(Optimizer):
         self.d_model = d_model
         super().__init__()
 
-    def fsolve_newton(self, F, J, u0, rtol=1e-10, maxit=50, verbose=False):
+    def __fsolve_newton(self, F, J, u0, rtol=1e-10, maxit=8, verbose=False):
+        """
+        Jed Brown's algebraic solver
+        """
         u = u0.copy()
         Fu = F(u)
         norm0 = numpy.linalg.norm(Fu)
         enorm_last = numpy.linalg.norm(u - numpy.array([1,1]))
+
         for i in range(maxit):
             du = -numpy.linalg.solve(J(u), Fu)
             u += du
@@ -28,8 +32,11 @@ class NewtonRaphson(Optimizer):
                 break
         return u, i
 
-    def optimize(self, ):
+    def optimize(self, n, del_u, u):
        """ This is taken from fsolve_newton in """
+        F = d_model.compute_function(n, del_u, u)
+        J = d_model.compute_hessian(del_u, u)
+        self.__fsolve_newton(F, J, u, rtol=1e-8, maxit = 8, verbose=True)
 
 
 
