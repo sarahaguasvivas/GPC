@@ -100,5 +100,5 @@ class NeuralNetworkPredictor(DynamicModel):
     def predict(self, x):
         # abstract
         # x is a vector with the sensor measurements and the current moves:
-        return model.predict(x, batch_size=1)
+        return self.model.predict(x, batch_size=1)
 
