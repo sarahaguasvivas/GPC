@@ -8,27 +8,33 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 filename= "../model_data/neural_network_2.hdf5"
 
-NNP = NeuralNetworkPredictor(model_file = filename, N1 = 5, N2= 10, Nu = 5, ym = [0.0]*10, K = 5, yn = [1.]*10, lambd = [0.3]*5)
+NNP = NeuralNetworkPredictor(model_file = filename, N1 = 5, N2= 10, Nu = 3, ym = [0.0]*3, K = 5, yn = [1.]*3, lambd = [0.3]*5)
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
-new_state_new = np.random.multivariate_normal([0.]*12, 1.5*np.eye(12), 5)
-du = [0.]*5
+new_state_new = np.random.multivariate_normal([0.]*12, 1.5*np.eye(12), 1)
+du = [0.]*3
 
 for n in range(1000):
 
-    future_outputs= NNP.predict(new_state_new)
+    future_outputs = NNP.predict(new_state_new)
 
     future_outputs = future_outputs.flatten()
 
     new_state_old = new_state_new
 
-    u_optimal = NR_opt.optimize(n, du, future_outputs)
+    u_optimal = np.reshape(NR_opt.optimize(n, du, future_outputs, False)[0], (-1, 1))
 
-    du = (np.array(new_state_old[-2:]) - np.array(u_optimal)).tolist
+    du = np.array(new_state_old[:, -3:]) - np.array(u_optimal.flatten())
 
-    signals = NNP.measure(u_optimal).tolist
+    du = du.flatten()
 
-    new_state_new = signals + u_optimal.tolist
+    u_optimal = np.array([u_optimal])
+
+    u_optimal = np.concatenate(([[[0.0]]], u_optimal), axis=1)
+
+    signals = NNP.measure(u_optimal[:, :, 0])
+
+    new_state_new = np.concatenate((signals, np.reshape(u_optimal.flatten()[1:], (1, -1))), axis=1)
 
 
 

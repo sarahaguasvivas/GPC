@@ -33,8 +33,10 @@ class NeuralNetworkPredictor(DynamicModel):
         # to have the specific window
         first_term = 0.0
         for j in range(self.Nu):
-            first_term += kronecker_delta(h, j)* kronecker_delta(m, j) * ( 2.0*self.Cost.s/(u[j] + \
-                                            self.Cost.r/2.0 - self.Cost.b)**3  + 2.0*self.Cost.s/ (self.Cost.r /2.0 + \
+            first_term += kronecker_delta(h, j)* kronecker_delta(m, j) * \
+                                                ( 2.0*self.Cost.s/(u[j] + \
+                                                    self.Cost.r/2.0 - self.Cost.b)**3  + \
+                                                            2.0*self.Cost.s/ (self.Cost.r /2.0 + \
                                                                     self.Cost.b - u[j])**3  )
         return first_term
 

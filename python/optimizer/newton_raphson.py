@@ -15,16 +15,23 @@ class NewtonRaphson(Optimizer):
         Jed Brown's algebraic solver
         """
         u = u0.copy()
+        print(u)
         Fu = self.d_model.compute_jacobian(nth_timestep, del_u, u)
         norm0 = np.linalg.norm(Fu)
         enorm_last = np.linalg.norm(u - np.array([1]*len(u)))
 
         for i in range(maxit):
+
             Ju = self.d_model.compute_hessian(nth_timestep, del_u, u)
+
             du = -np.linalg.solve(Ju, Fu)
+
             u += du
+
             Fu = self.d_model.compute_jacobian(nth_timestep, del_u, u)
+
             norm = np.linalg.norm(Fu)
+
             if verbose:
                 enorm = np.linalg.norm(u - np.array([1]*len(u)))
                 print('Newton {:d} anorm {:6.2e} rnorm {:6.2e} eratio {:6.2f}'.
@@ -34,9 +41,9 @@ class NewtonRaphson(Optimizer):
                 break
         return u, i
 
-    def optimize(self, n, del_u, u):
+    def optimize(self, n, del_u, u, verbose):
        """ This is taken from fsolve_newton in """
-       return self.__fsolve_newton(n, del_u, u, rtol=1e-8, maxit = 8, verbose=True)
+       return self.__fsolve_newton(n, del_u, u, rtol=1e-8, maxit = 8, verbose=verbose)
 
 
 
