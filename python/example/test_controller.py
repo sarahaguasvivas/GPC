@@ -13,3 +13,6 @@ NR_opt = NewtonRaphson(cost = NNP.Cost, d_model = NNP)
 NR_opt.optimize(100, [0.5]*5, [1.]*5)
 
 
+
+
+
