@@ -20,60 +20,47 @@ class NeuralNetworkPredictor(DynamicModel):
         self.Hessian = np.zeros((self.Nu, self.Nu))
         self.yn = yn
         self.K = K
-        self.nd = 2
-        self.d_d = 3
+        self.num_predicted_states = 3
         self.constraints = Constraints()
         self.model = load_model(model_file)
-
+        print(self.model.summary())
+        print(self.model.get_config())
         super().__init__()
         self.Cost = NN_Cost(self, self.lambd)
 
-    def _first_term(self, h, m, u, n):
-        # Removed n from u because u will rewrite itself
-        # to have the specific window
-        first_term = 0.0
-        for j in range(self.Nu):
-            first_term += kronecker_delta(h, j)* kronecker_delta(m, j) * \
-                                                ( 2.0*self.Cost.s/(u[j] + \
-                                                    self.Cost.r/2.0 - self.Cost.b)**3  + \
-                                                            2.0*self.Cost.s/ (self.Cost.r /2.0 + \
-                                                                    self.Cost.b - u[j])**3  )
-        return first_term
-
-    def _second_term(self, h, m, n):
-        second_term = 0.0
-        for j in range(self.Nu):
-            second_term += self.Cost.lambd[j] * (kronecker_delta(h, j) - kronecker_delta(h, j-1)) * \
-                                            (kronecker_delta(m, j) - kronecker_delta(m, j-1))
-        return 2.*second_term
-
-    def __output_function_derivative(self):
+    def __Phi_prime(self):
         """
         Linear output function
         """
         return 1.0
 
-    def __output_function_second_derivative(self):
+    def __Phi_prime_prime(self):
         """
         Linear output function
         """
         return 0.0
 
-    def __partial_yn_partial_u(self, n, h, m):
-        # because my output function is linear
-        return 0.0
 
-    def _third_term(self, h, m, n):
-        return 0.0
+    def partial_net_partual_u(self, n, h, j):
+        """
+        n   ->     timestep number
+        h   ->     dummy index
+        j   ->     hidden layer
+        """
+        k  = self.K
+        hd = self.model.layers[j-1].output_shape[1]
+        nd = self.K
+        dd =
+        weights = self.model.layers[j].get_weights()[0]
+
+
+    def __partial_yn_partial_u(self, n, h):
+        pass
+
 
     def compute_hessian(self, n,  del_u, u):
-        # abstract
-        for i in range(self.Nu):
-            for j in range(self.Nu):
-                self.Hessian[i, j] = self._first_term(i, j, u, n) + \
-                                                self._second_term(i, j, n) + \
-                                                    self._third_term(i, j, n)
-        return self.Hessian
+        pass
+
 
     def compute_jacobian(self, n, del_u, u):
         # abstract

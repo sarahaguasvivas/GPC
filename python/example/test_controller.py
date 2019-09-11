@@ -1,8 +1,9 @@
 #!/usr/bin/env python3.5
 from dyno_model.neural_network_predictor import *
 from optimizer.newton_raphson import *
-
+import sys
 import os
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
