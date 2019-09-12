@@ -23,36 +23,61 @@ class NeuralNetworkPredictor(DynamicModel):
         self.num_predicted_states = 3
         self.constraints = Constraints()
         self.model = load_model(model_file)
+
         print(self.model.summary())
         print(self.model.get_config())
+
+        self.hd = len(self.model.layers) - 1
+        self.nd = 9
+        self.dd = 1
+
         super().__init__()
         self.Cost = NN_Cost(self, self.lambd)
 
-    def __Phi_prime(self):
+    def __Phi_prime(self, x = 0):
         """
         Linear output function
         """
-        return 1.0
+        return [1.0]*(self.hd + 1)
 
-    def __Phi_prime_prime(self):
+    def __Phi_prime_prime(self, x = 0):
         """
         Linear output function
         """
-        return 0.0
+        return [0.0]*(self.hd + 1)
 
 
-    def partial_net_partual_u(self, n, h, j):
+    def __parial_yn_partial_u(self, n, h, j):
+        hid = self.model.layers[j].output_shape[1]
+        weights = self.model.layers[j].get_weights()[0]
+        sum_output = 0.0
+        for i in range(hid):
+            sum_output += weights[j][i] * self.__partial_net_partial_u(n, h, i)
+
+        return sum_output
+
+
+    def __partial_fnet_partial_u(self, n, h, j):
+        phi_prime = self.__Phi_prime()
+        phi_prime_prime = self.__Phi_prime_prime()
+
+        return phi_prime*self.__partial_net_partial_u(n, h, j)
+
+    def __partial_net_partial_u(self, n, h, j):
         """
         n   ->     timestep number
         h   ->     dummy index
         j   ->     hidden layer
         """
-        k  = self.K
-        hd = self.model.layers[j-1].output_shape[1]
-        nd = self.K
-        dd =
         weights = self.model.layers[j].get_weights()[0]
+        sum_first = 0.0
+        for i in range(self.nd):
+            if (self.K - self.Nu)<i:
+                sum_first += weights[j][i+1] * kroenecker_delta(self.K - i, h)
+            else:
+                sum_first += weights[j][i+1] * kroenecker_delta(self.Nu, h)
 
+        return sum_first
 
     def __partial_yn_partial_u(self, n, h):
         pass
