@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 from dyno_model.neural_network_predictor import *
 from optimizer.newton_raphson import *
 import sys
