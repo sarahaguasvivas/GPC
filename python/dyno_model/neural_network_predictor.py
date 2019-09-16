@@ -130,7 +130,8 @@ class NeuralNetworkPredictor(DynamicModel):
         signal = self.measure(u)
         u = np.reshape(u[1:], (1, -1))
         u = np.concatenate((signal, u), axis = 1)
-        jaco= np.sum(self.__jacobian_tensorflow(u), axis = 0)
+        jaco= np.sum(self.__jacobian_tensorflow(u), axis = 1)
+        print(jaco)
         return jaco
 
     def Ju(self, u):
@@ -140,17 +141,18 @@ class NeuralNetworkPredictor(DynamicModel):
         u = np.reshape(u[1:], (1, -1))
         u = np.concatenate((signal, u), axis = 1)
 
+        hess =[]
         for m in range(self.output_size):
             grad_func = tf.gradients(self.model.output[:, m], self.model.input)
             gradients = sess.run(grad_func, feed_dict={self.model.input: u.reshape((1, u.size))})
             grad = gradients[0][0, :]
-
-            hess=[]
-            for i in range(len(grad)):
-                hess += [self.__jacobian_tensorflow(grad)]
+            hess += [self.__jacobian_tensorflow(grad)]
 
         hess = np.array(hess)
-        hess = np.sum(hess, axis = 1)
+
+        hess = np.sum(hess, axis = 0)
+
+        hess = np.transpose(hess)
 
         self.Hessian = hess
         return self.Hessian

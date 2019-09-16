@@ -13,7 +13,7 @@ NNP = NeuralNetworkPredictor(model_file = filename, N1 = 5, N2= 10, Nu = 3, ym =
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
 new_state_new = np.random.multivariate_normal([0.05]*12, 1.5*np.eye(12), 1)
-du = [.5]*3
+du = [.3]*3
 
 for n in range(1000):
 
@@ -24,7 +24,7 @@ for n in range(1000):
     new_state_old = new_state_new
 
     u_optimal = np.reshape(NR_opt.optimize(n, du, future_outputs, False)[0], (-1, 1))
-    print(u_optimal)
+    print(new_state_old[:, -3:])
     du = np.array(new_state_old[:, -3:]) - np.array(u_optimal.flatten())
 
     du = du.flatten()
