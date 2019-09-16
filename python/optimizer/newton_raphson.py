@@ -15,20 +15,22 @@ class NewtonRaphson(Optimizer):
         Jed Brown's algebraic solver
         """
         u = u0.copy()
-        print(u)
-        Fu = self.d_model.compute_jacobian(nth_timestep, del_u, u)
+
+        Fu = self.d_model.Fu(u)
+
         norm0 = np.linalg.norm(Fu)
+
         enorm_last = np.linalg.norm(u - np.array([1]*len(u)))
 
         for i in range(maxit):
 
-            Ju = self.d_model.compute_hessian(nth_timestep, del_u, u)
+            Ju = self.d_model.Ju(u)
 
             du = -np.linalg.solve(Ju, Fu)
 
             u += du
 
-            Fu = self.d_model.compute_jacobian(nth_timestep, del_u, u)
+            Fu = self.d_model.Fu(u)
 
             norm = np.linalg.norm(Fu)
 
