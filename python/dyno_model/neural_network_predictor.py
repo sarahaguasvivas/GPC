@@ -38,6 +38,13 @@ class NeuralNetworkPredictor(DynamicModel):
         self.nd = 9
         self.dd = 1
         self.Hessian = np.zeros((self.input_size, self.input_size))
+
+        """
+        These attributes will be part of the recursion:
+        """
+        self.previous_first_der = 0
+        self.previoud_second_der = 0
+
         super().__init__()
         self.Cost = NN_Cost(self, self.lambd)
 
@@ -54,6 +61,10 @@ class NeuralNetworkPredictor(DynamicModel):
         return 0.0
 
     def __jacobian_tensorflow(self, x):
+        """
+        Will not use but to confirm my gradients
+
+        """
         jacobian_matrix = []
         for m in range(self.output_size):
             grad_func = tf.gradients(self.model.output[:, m], self.model.input)
@@ -63,95 +74,113 @@ class NeuralNetworkPredictor(DynamicModel):
         return np.array(jacobian_matrix)
 
     def __hessian_tensorflow(self, x):
-        hessian_matrix = []
-        gradients=[]
+        """
+        Will not use but to confirm hessians
+        """
+        hessian_matrix= []
         for m in range(self.output_size):
-            temp=[]
-            for n in range(self.output_size):
-                grad_func = tf.gradients(self.model.output[:, m], self.model.input)
-                gradients = sess.run(grad_func, feed_dict={self.model.input: x.reshape((1, x.size))})
-                gradients = gradients[0][0, :]
-                grad_func_1 = tf.gradients(self.model.output[:, n], self.model.input)
-                gradients = sess.run(grad_func_1, feed_dict={self.model.input: gradients.reshape((1, gradients.size))})
-                temp += [gradients[0][0, :]]
-            temp = [tf.constant(0, dtype=tf.float32) if t is None else t for t in temp]
-            temp = tf.stack(temp)
-            hessian_matrix.append(temp)
-
-        hessian_matrix = tf.stack(hessian_matrix)
-        hessian_matrix = np.sum(hessian_matrix.eval(), axis = 2)
+            dfx = tf.gradients(self.model.output[:, m], self.model.input)[0]
+            #dfx = sess.run(dfx, feed_dict={self.model.input: x.reshape((1, x.size))})
+            for i in range(self.output_size):
+                dfx_i = tf.slice(dfx, begin = [i, 0], size = [1, 1])
+                ddfx_i = tf.gradients(dfx_i, self.model.input)[0]
+                ddfx_i = sess.run(ddfx_i, feed_dict={self.model.input: x.reshape((1, x.size))})
+                if i == 0: hess = ddfx_i
+                else: hess = tf.concat(1, [hess, ddfx_i])
+                print(hess.eval())
+        print(hessian_matrix)
         return hessian_matrix
 
-    def __partial_2_fnet_partial_nph_partial_npm(self, n, h, j):
-        pass
+    """
+    ---------------------------------------------------------------------
+
+    Soloway, D., and P.J. Haley, “Neural Generalized Predictive Control,”
+    Proceedings of the 1996 IEEE International Symposium on Intelligent
+    Control, 1996, pp. 277–281.
+
+    Calculating h'th element of the Jacobian
+    Calculating m'th and h'th element of the Hessian
+
+    ---------------------------------------------------------------------
+    """
+
+    def __partial_2_fnet_partial_nph_partial_npm(self, n, h, m, j):
+        return self.__Phi_prime()*self.__partial_2_net_partial_u_nph_partial_npm(n, h, j)*\
+                        + self.__Phi_prime_prime() * self.__partial_net_partial_u(n, h, j) * \
+                                self.__partial_net_partial_u(n, m, j)
 
 
-    def __partial_2_yn_partial_nph_partial_npm(self, n, h, j):
-        hid = self.model.layers[j].output_shape[1]
+
+    def __partial_2_yn_partial_nph_partial_npm(self, n, h, m, j):
         weights = self.model.layers[j].get_weights()[0]
-        sum_output = 0.0
+        hid = self.model.layers[j].output_shape[1]
+        sum_output=0.0
         for i in range(hid):
-            sum_output+=weights[j][i] # TODO
+            sum_output+= weights[j,i] * self.__partial_2_fnet_partial_nph_partial_npm(n, h, j)
+        return sum_output
+
+    def __partial_2_net_partial_u_nph_partial_npm(self, n, h, m, j):
+        weights = self.model.layers[j].get_weights()[0]
+        sum_output=0.0
+        for i in range(1, min(self.K, self.dd)):
+            sum_output+= weights[j, i+self.nd+1] * self.previous_second_der * kronecker_delta(self.K-i-1, 1)
+        return sum_output
 
     def __parial_yn_partial_u(self, n, h, j):
-        hid = self.model.layers[j].output_shape[1]
         weights = self.model.layers[j].get_weights()[0]
+        hid = self.model.layers[j].output_shape[1]
         sum_output = 0.0
         for i in range(hid):
-            sum_output += weights[j][i] * self.__partial_net_partial_u(n, h, i)
-
+            sum_output += weights[j, i] * self.__partial_fnet_partial_u(n, h, j)
         return sum_output
 
     def __partial_fnet_partial_u(self, n, h, j):
-        phi_prime = self.__Phi_prime()
-        phi_prime_prime = self.__Phi_prime_prime()
-
-        return phi_prime*self.__partial_net_partial_u(n, h, j)
+        return self.__Phi_prime()*self.__partial_net_partial_u(n, h, j)
 
     def __partial_net_partial_u(self, n, h, j):
-        """
-        n   ->     timestep number
-        h   ->     dummy index
-        j   ->     hidden layer
-        """
-
         weights = self.model.layers[j].get_weights()[0]
-        sum_first = 0.0
+        sum_output = 0.0
         for i in range(self.nd):
-            if (self.K - self.Nu)<i:
-                sum_first += weights[j][i+1] * kroenecker_delta(self.K - i, h)
+            if (self.K - self.Nu) < i:
+                sum_output+= weights[j, i+1] * kronecker_delta(self.K - i, h)
             else:
-                sum_first += weights[j][i+1] * kroenecker_delta(self.Nu, h)
+                sum_output+=weights[j, i+1] * kronecker_delta(self.Nu, h)
 
-        return sum_first
-
-    def __partial_yn_partial_u(self, n, h):
-        pass
-
-    def compute_hessian(self, n,  del_u, u):
-        pass
-
-    def compute_jacobian(self, n, del_u, u):
-        weights = self.model.layers[-1].get_weights()[0]
-        biases = self.model.layers[-1].get_weights()[1]
-        sum_output= [0.0]*self.Nu
-        for h in range(self.Nu):
-            for j in range(self.model.layers[-1].input_shape[1]):
-                for i in range(weights.shape[1]):
-                    if (self.K - self.Nu) < i:
-                        sum_output[h] += weights[j, i] * kronecker_delta(self.K-i, h)
-                    else:
-                        sum_output[h] += weights[j, i] * kronecker_delta(self.Nu, h)
+        for i in range(1, min(self.K, self.dd)):
+            sum_output+= weights[j, i+self.nd+1] * self.previous_first_der * \
+                                                 kronecker_delta(self.K - i -1, 1)
         return sum_output
+
+
+    def __partial_delta_u_partial_u(self, n, j, h):
+        return kronecker_delta(h, j) - kronecker_delta(h, j-1)
+
+    def compute_hessian(self, n, del_u, u):
+
+        pass
+
+    def compute_jacobian(self, n, u):
+        # working on this now
+        h = []
+        sum_output=0.0
+        for j in range(self.Nu):
+            for i in range(self.N1, self.N2):
+                sum_output+=-2*(self.ym[j]-self.yn[j])*self.__partial_yn_partial_u(n, i, j)
+
+        for i in range(self.Nu):
+            for i in range()
 
     def Fu(self, u):
         u = [0.0] + u.tolist()
         u = np.array(u)
         signal = self.measure(u)
+
         u = np.reshape(u[1:], (1, -1))
         u = np.concatenate((signal, u), axis = 1)
-        jaco= np.sum(self.__jacobian_tensorflow(u), axis = 1)
-        return jaco
+
+        # Compute jacobian
+
+        return jacobian
 
     def Ju(self, u):
         u = [0.0] + u.tolist()
@@ -160,28 +189,9 @@ class NeuralNetworkPredictor(DynamicModel):
 
         u = np.reshape(u[1:], (1, -1))
         u = np.concatenate((signal, u), axis = 1)
-        #grad =[]
 
-        #for m in range(self.output_size):
-        #    grad_func = tf.gradients(self.model.output[:, m], self.model.input)
-        #    gradients = sess.run(grad_func, feed_dict={self.model.input: u.reshape((1, u.size))})
-        #    grad += [gradients[0][0, :]]
+        # Compute hessian
 
-        hess = self.__hessian_tensorflow(u)
-
-        #grad = np.array(grad)
-        #hessians = self.__hessian_tensorflow(u)
-        #print(hessians.shape)
-        #hess = self.__jacobian_tensorflow(grad)
-        #print(hess.shape)
-        #if len(hess.shape) > 2:
-        #    ma_axis = np.argmax(hess.shape)
-        #    hess = np.sum(hess, axis = ma_axis)
-
-        #hess = np.transpose(hess)
-        hess = np.array(hess)
-        print(hess.shape)
-        self.Hessian = hess
         return self.Hessian
 
     def compute_cost(self, del_u, u):

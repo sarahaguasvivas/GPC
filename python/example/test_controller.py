@@ -20,10 +20,10 @@ for n in range(1000):
     future_outputs = NNP.predict(new_state_new)
 
     future_outputs = future_outputs.flatten()
-
+    print(new_state_new)
     new_state_old = new_state_new
 
-    u_optimal = np.reshape(NR_opt.optimize(n, du, future_outputs, False)[0], (-1, 1))
+    u_optimal = np.reshape(NR_opt.optimize(n, du, future_outputs, True)[0], (-1, 1))
 
     du = np.array(new_state_old[:, -3:]) - np.array(u_optimal.flatten())
 
