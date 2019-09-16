@@ -104,38 +104,38 @@ class NeuralNetworkPredictor(DynamicModel):
     ---------------------------------------------------------------------
     """
 
-    def __partial_2_fnet_partial_nph_partial_npm(self, n, h, m, j):
-        return self.__Phi_prime()*self.__partial_2_net_partial_u_nph_partial_npm(n, h, j)*\
-                        + self.__Phi_prime_prime() * self.__partial_net_partial_u(n, h, j) * \
-                                self.__partial_net_partial_u(n, m, j)
+    def __partial_2_fnet_partial_nph_partial_npm(self, h, m, j):
+        return self.__Phi_prime()*self.__partial_2_net_partial_u_nph_partial_npm(h, j)*\
+                        + self.__Phi_prime_prime() * self.__partial_net_partial_u(h, j) * \
+                                self.__partial_net_partial_u(m, j)
 
 
 
-    def __partial_2_yn_partial_nph_partial_npm(self, n, h, m, j):
+    def __partial_2_yn_partial_nph_partial_npm(self, h, m, j):
         weights = self.model.layers[j].get_weights()[0]
         hid = self.model.layers[j].output_shape[1]
         sum_output=0.0
         for i in range(hid):
-            sum_output+= weights[j,i] * self.__partial_2_fnet_partial_nph_partial_npm(n, h, j)
+            sum_output+= weights[j,i] * self.__partial_2_fnet_partial_nph_partial_npm(h, j)
         return sum_output
 
-    def __partial_2_net_partial_u_nph_partial_npm(self, n, h, m, j):
+    def __partial_2_net_partial_u_nph_partial_npm(self, h, m, j):
         weights = self.model.layers[j].get_weights()[0]
         sum_output=0.0
         for i in range(1, min(self.K, self.dd)):
             sum_output+= weights[j, i+self.nd+1] * self.previous_second_der * kronecker_delta(self.K-i-1, 1)
         return sum_output
 
-    def __parial_yn_partial_u(self, n, h, j):
+    def __parial_yn_partial_u(self, h, j):
         weights = self.model.layers[j].get_weights()[0]
         hid = self.model.layers[j].output_shape[1]
         sum_output = 0.0
         for i in range(hid):
-            sum_output += weights[j, i] * self.__partial_fnet_partial_u(n, h, j)
+            sum_output += weights[j, i] * self.__partial_fnet_partial_u( h, j)
         return sum_output
 
-    def __partial_fnet_partial_u(self, n, h, j):
-        return self.__Phi_prime()*self.__partial_net_partial_u(n, h, j)
+    def __partial_fnet_partial_u(self, h, j):
+        return self.__Phi_prime()*self.__partial_net_partial_u( h, j)
 
     def __partial_net_partial_u(self, n, h, j):
         weights = self.model.layers[j].get_weights()[0]
@@ -152,25 +152,33 @@ class NeuralNetworkPredictor(DynamicModel):
         return sum_output
 
 
-    def __partial_delta_u_partial_u(self, n, j, h):
+    def __partial_delta_u_partial_u(self, j, h):
         return kronecker_delta(h, j) - kronecker_delta(h, j-1)
 
-    def compute_hessian(self, n, del_u, u):
+    def compute_hessian(self, u, del_u):
+        Hessian = np.zeros((self.Nu, self.Nu))
 
         pass
 
-    def compute_jacobian(self, n, u):
+    def compute_jacobian(self, u, del_u):
         # working on this now
-        h = []
+        dJ = []
         sum_output=0.0
-        for j in range(self.Nu):
-            for i in range(self.N1, self.N2):
-                sum_output+=-2*(self.ym[j]-self.yn[j])*self.__partial_yn_partial_u(n, i, j)
+        for h in range(self.Nu):
+            for j in range(self.N1, self.N2):
+                sum_output+=-2*(self.ym[j]-self.yn[j])*self.__partial_yn_partial_u(n, h, j)
 
-        for i in range(self.Nu):
-            for i in range()
+            for j in range(self.Nu):
+                sum_output+=2*self.lambd[j]*del_u[j]*self.__partial_delta_u_partial_u(n, j, h)
 
-    def Fu(self, u):
+            for j in range(self.Nu):
+                sum_output+=kronecker_delta(h, j) * ( -self.s/(u[j] + self.r/2. - self.b)**2  + \
+                                            self.s / (self.r/2. + self.b - u[j])**2    )
+
+            dJ+=[sum_output]
+        return dJ
+
+    def Fu(self, u, del_u):
         u = [0.0] + u.tolist()
         u = np.array(u)
         signal = self.measure(u)
@@ -178,11 +186,10 @@ class NeuralNetworkPredictor(DynamicModel):
         u = np.reshape(u[1:], (1, -1))
         u = np.concatenate((signal, u), axis = 1)
 
-        # Compute jacobian
-
+        jacobian = self.compute_jacobian(u, del_u)
         return jacobian
 
-    def Ju(self, u):
+    def Ju(self, u, del_u):
         u = [0.0] + u.tolist()
         u = np.array(u)
         signal = self.measure(u)
