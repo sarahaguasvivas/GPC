@@ -112,7 +112,6 @@ class NeuralNetworkPredictor(DynamicModel):
         pass
 
     def compute_jacobian(self, n, del_u, u):
-        # abstract
         weights = self.model.layers[-1].get_weights()[0]
         biases = self.model.layers[-1].get_weights()[1]
         sum_output= [0.0]*self.Nu
@@ -167,7 +166,5 @@ class NeuralNetworkPredictor(DynamicModel):
         return measure
 
     def predict(self, x):
-        # abstract
-        # x is a vector with the sensor measurements and the current moves:
         return self.model.predict(x, batch_size=1)
 
