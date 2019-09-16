@@ -15,8 +15,9 @@ class NewtonRaphson(Optimizer):
         Jed Brown's algebraic solver
         """
         u = u0.copy()
+        du = del_u.copy()
 
-        Fu = self.d_model.Fu(u)
+        Fu = self.d_model.Fu(u, du)
 
         norm0 = np.linalg.norm(Fu)
 
@@ -24,13 +25,13 @@ class NewtonRaphson(Optimizer):
 
         for i in range(maxit):
 
-            Ju = self.d_model.Ju(u)
+            Ju = self.d_model.Ju(u, du)
 
             du = -np.linalg.solve(Ju, Fu)
 
             u += du
 
-            Fu = self.d_model.Fu(u)
+            Fu = self.d_model.Fu(u, du)
 
             norm = np.linalg.norm(Fu)
 

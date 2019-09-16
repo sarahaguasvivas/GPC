@@ -157,14 +157,31 @@ class NeuralNetworkPredictor(DynamicModel):
 
     def compute_hessian(self, u, del_u):
         Hessian = np.zeros((self.Nu, self.Nu))
+        for h in range(self.Nu):
+            for m in range(self.Nu):
+                sum_output=0.0
 
-        pass
+                for j in range(self.N1, self.N2):
+                    sum_output += 2*(self.__partial_yn_partial_u(h, j)*self.__partial_yn_partial_u(m, j) - \
+                                        self.__partial_2_yn_partial_nph_partial_npm(h, m, j)* \
+                                        (self.ym[j] - self.yn[j]))
+
+                for j in range(self.Nu):
+                    sum_output += 2*( self.lambd[j] * (self.__partial_delta_u_partial_u(j, h) * self.__partial_delta_u_partial_u(j, m) + del_u[j] * 0.0))
+
+
+                for j in range(self.Nu):
+                    sum_output += kronecker_delta(h, j) * kronecker_delta(m, j) * ( 2.0*self.s/( u[j] + self.r/2. - self.b)**3 + 2.*self.s/(self.r/2. + self.b - u[j])**3)
+
+                Hessian[m, h] = sum_output
+
+        return Hessian
 
     def compute_jacobian(self, u, del_u):
         # working on this now
         dJ = []
-        sum_output=0.0
         for h in range(self.Nu):
+            sum_output=0.0
             for j in range(self.N1, self.N2):
                 sum_output+=-2*(self.ym[j]-self.yn[j])*self.__partial_yn_partial_u(n, h, j)
 
