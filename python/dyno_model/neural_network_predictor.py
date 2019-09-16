@@ -35,7 +35,7 @@ class NeuralNetworkPredictor(DynamicModel):
         self.output_size = self.model.layers[-1].output_shape[1]
         self.input_size = self.model.layers[0].input_shape[1]
         self.hd = len(self.model.layers) - 1
-        self.nd = 9
+        self.nd = 3
         self.dd = 1
         self.Hessian = np.zeros((self.input_size, self.input_size))
 
@@ -126,7 +126,7 @@ class NeuralNetworkPredictor(DynamicModel):
             sum_output+= weights[j, i+self.nd+1] * self.previous_second_der * kronecker_delta(self.K-i-1, 1)
         return sum_output
 
-    def __parial_yn_partial_u(self, h, j):
+    def __partial_yn_partial_u(self, h, j):
         weights = self.model.layers[j].get_weights()[0]
         hid = self.model.layers[j].output_shape[1]
         sum_output = 0.0
@@ -135,10 +135,11 @@ class NeuralNetworkPredictor(DynamicModel):
         return sum_output
 
     def __partial_fnet_partial_u(self, h, j):
-        return self.__Phi_prime()*self.__partial_net_partial_u( h, j)
+        return self.__Phi_prime()*self.__partial_net_partial_u(h, j)
 
-    def __partial_net_partial_u(self, n, h, j):
+    def __partial_net_partial_u(self, h, j):
         weights = self.model.layers[j].get_weights()[0]
+        self.nd = self.model.layers[j].input_shape[1]-1
         sum_output = 0.0
         for i in range(self.nd):
             if (self.K - self.Nu) < i:
@@ -183,10 +184,10 @@ class NeuralNetworkPredictor(DynamicModel):
         for h in range(self.Nu):
             sum_output=0.0
             for j in range(self.N1, self.N2):
-                sum_output+=-2*(self.ym[j]-self.yn[j])*self.__partial_yn_partial_u(n, h, j)
+                sum_output+=-2*(self.ym[j]-self.yn[j])*self.__partial_yn_partial_u(h, j)
 
             for j in range(self.Nu):
-                sum_output+=2*self.lambd[j]*del_u[j]*self.__partial_delta_u_partial_u(n, j, h)
+                sum_output+=2*self.lambd[j]*del_u[j]*self.__partial_delta_u_partial_u(j, h)
 
             for j in range(self.Nu):
                 sum_output+=kronecker_delta(h, j) * ( -self.s/(u[j] + self.r/2. - self.b)**2  + \
