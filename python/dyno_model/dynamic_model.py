@@ -17,6 +17,14 @@ class DynamicModel(ABC):
         pass
 
     @abstractmethod
+    def Ju(self):
+        pass
+
+    @abstractmethod
+    def Fu(self):
+        pass
+
+    @abstractmethod
     def measure(self):
         pass
 

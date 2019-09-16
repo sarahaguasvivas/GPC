@@ -62,6 +62,26 @@ class NeuralNetworkPredictor(DynamicModel):
 
         return np.array(jacobian_matrix)
 
+    def __hessian_tensorflow(self, x):
+        hessian_matrix = []
+        gradients=[]
+        for m in range(self.output_size):
+            temp=[]
+            for n in range(self.output_size):
+                grad_func = tf.gradients(self.model.output[:, m], self.model.input)
+                gradients = sess.run(grad_func, feed_dict={self.model.input: x.reshape((1, x.size))})
+                gradients = gradients[0][0, :]
+                grad_func_1 = tf.gradients(self.model.output[:, n], self.model.input)
+                gradients = sess.run(grad_func_1, feed_dict={self.model.input: gradients.reshape((1, gradients.size))})
+                temp += [gradients[0][0, :]]
+            temp = [tf.constant(0, dtype=tf.float32) if t is None else t for t in temp]
+            temp = tf.stack(temp)
+            hessian_matrix.append(temp)
+
+        hessian_matrix = tf.stack(hessian_matrix)
+        hessian_matrix = np.sum(hessian_matrix.eval(), axis = 2)
+        return hessian_matrix
+
     def __partial_2_fnet_partial_nph_partial_npm(self, n, h, j):
         pass
 
@@ -131,29 +151,36 @@ class NeuralNetworkPredictor(DynamicModel):
         u = np.reshape(u[1:], (1, -1))
         u = np.concatenate((signal, u), axis = 1)
         jaco= np.sum(self.__jacobian_tensorflow(u), axis = 1)
-        print(jaco)
         return jaco
 
     def Ju(self, u):
         u = [0.0] + u.tolist()
         u = np.array(u)
         signal = self.measure(u)
+
         u = np.reshape(u[1:], (1, -1))
         u = np.concatenate((signal, u), axis = 1)
+        #grad =[]
 
-        hess =[]
-        for m in range(self.output_size):
-            grad_func = tf.gradients(self.model.output[:, m], self.model.input)
-            gradients = sess.run(grad_func, feed_dict={self.model.input: u.reshape((1, u.size))})
-            grad = gradients[0][0, :]
-            hess += [self.__jacobian_tensorflow(grad)]
+        #for m in range(self.output_size):
+        #    grad_func = tf.gradients(self.model.output[:, m], self.model.input)
+        #    gradients = sess.run(grad_func, feed_dict={self.model.input: u.reshape((1, u.size))})
+        #    grad += [gradients[0][0, :]]
 
+        hess = self.__hessian_tensorflow(u)
+
+        #grad = np.array(grad)
+        #hessians = self.__hessian_tensorflow(u)
+        #print(hessians.shape)
+        #hess = self.__jacobian_tensorflow(grad)
+        #print(hess.shape)
+        #if len(hess.shape) > 2:
+        #    ma_axis = np.argmax(hess.shape)
+        #    hess = np.sum(hess, axis = ma_axis)
+
+        #hess = np.transpose(hess)
         hess = np.array(hess)
-
-        hess = np.sum(hess, axis = 0)
-
-        hess = np.transpose(hess)
-
+        print(hess.shape)
         self.Hessian = hess
         return self.Hessian
 
