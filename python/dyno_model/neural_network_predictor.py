@@ -37,13 +37,13 @@ class NeuralNetworkPredictor(DynamicModel):
         self.hd = len(self.model.layers) - 1
         self.nd = 3
         self.dd = 1
-        self.Hessian = np.zeros((self.input_size, self.input_size))
+        self.Hessian = np.zeros((self.output_size, self.output_size))
 
         """
         These attributes will be part of the recursion:
         """
-        self.previous_first_der = 0
-        self.previoud_second_der = 0
+        self.previous_first_der = 1
+        self.previoud_second_der = 1
 
         super().__init__()
         self.Cost = NN_Cost(self, self.lambd)
@@ -182,7 +182,10 @@ class NeuralNetworkPredictor(DynamicModel):
 
 
                 for j in range(self.Nu):
-                    sum_output += kronecker_delta(h, j) * kronecker_delta(m, j) * ( 2.0*self.constraints.s/( u[j] + self.constraints.r/2. - self.constraints.b)**3 + 2.*self.constraints.s/(self.constraints.r/2. + self.constraints.b - u[j])**3)
+                    sum_output += kronecker_delta(h, j) * kronecker_delta(m, j) * \
+                                        ( 2.0*self.constraints.s/( u[j] + self.constraints.r/2. - \
+                                                self.constraints.b)**3 + 2.*self.constraints.s/(self.constraints.r/2. + \
+                                                                    self.constraints.b - u[j])**3)
 
                 Hessian[m, h] = sum_output
 

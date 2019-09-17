@@ -11,18 +11,23 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 filename= "../model_data/neural_network_2.hdf5"
 
-NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, ym = [0.0]*3, K = 5, yn = [1.]*3, lambd = [0.1]*3)
+NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, ym = [5., 0.0, 1.0], K = 5, yn = [0.]*3, lambd = [0.1]*3)
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
-new_state_new = np.random.multivariate_normal([0.05]*12, 1.5*np.eye(12), 1)
+new_state_new = np.random.multivariate_normal([0.0]*12, 1.5*np.eye(12), 1)
+new_state_new[:, -1] = 0.0
+new_state_new[:, -2] = 1.0
+new_state_new[:, -3] = 0.0
+
 du = [0.0]*3
 
 elapsed=[]
 u_optimal_list=[]
 ym = []
 state = []
-for n in range(10):
 
+for n in range(50):
+    print(n)
     seconds = time.time()
 
     future_outputs = NNP.predict(new_state_new)
@@ -48,13 +53,12 @@ for n in range(10):
     signals = NNP.measure(u_optimal[:, :, 0])
 
     new_state_new = np.concatenate((signals, np.reshape(u_optimal.flatten()[1:], (1, -1))), axis=1)
-    print(new_state_new.shape)
+
     elapsed += [time.time() - seconds]
 
     print("yn: ", NNP.yn, " time elapsed: ", elapsed[-1], " [s]")
     ym += [NNP.ym]
     state += [new_state_new[:, -3:]]
-
 
 
 elapsed = np.array(elapsed).flatten()
@@ -84,7 +88,7 @@ plt.plot(state[:, 2], 'k', label = 'state')
 plt.plot(u_optimal_list[:, 2], 'r', label = "control_input")
 plt.ylabel('twist cosine')
 plt.legend()
-
+plt.xlabel('timestamp')
 plt.show()
 
 
