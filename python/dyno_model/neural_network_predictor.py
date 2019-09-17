@@ -60,37 +60,6 @@ class NeuralNetworkPredictor(DynamicModel):
         """
         return 0.0
 
-    def __jacobian_tensorflow(self, x):
-        """
-        Will not use but to confirm my gradients
-
-        """
-        jacobian_matrix = []
-        for m in range(self.output_size):
-            grad_func = tf.gradients(self.model.output[:, m], self.model.input)
-            gradients = sess.run(grad_func, feed_dict={self.model.input: x.reshape((1, x.size))})
-            jacobian_matrix.append(gradients[0][0,:])
-
-        return np.array(jacobian_matrix)
-
-    def __hessian_tensorflow(self, x):
-        """
-        Will not use but to confirm hessians
-        """
-        hessian_matrix= []
-        for m in range(self.output_size):
-            dfx = tf.gradients(self.model.output[:, m], self.model.input)[0]
-            #dfx = sess.run(dfx, feed_dict={self.model.input: x.reshape((1, x.size))})
-            for i in range(self.output_size):
-                dfx_i = tf.slice(dfx, begin = [i, 0], size = [1, 1])
-                ddfx_i = tf.gradients(dfx_i, self.model.input)[0]
-                ddfx_i = sess.run(ddfx_i, feed_dict={self.model.input: x.reshape((1, x.size))})
-                if i == 0: hess = ddfx_i
-                else: hess = tf.concat(1, [hess, ddfx_i])
-                print(hess.eval())
-        print(hessian_matrix)
-        return hessian_matrix
-
     """
     ---------------------------------------------------------------------
 
@@ -105,6 +74,11 @@ class NeuralNetworkPredictor(DynamicModel):
     """
 
     def __partial_2_fnet_partial_nph_partial_npm(self, h, m, j):
+        """
+         D2^2f_j(net)
+         ------------
+        Du(n+h)Du(n+m)
+        """
         return self.__Phi_prime()*self.__partial_2_net_partial_u_nph_partial_npm(h, m,  j)*\
                         + self.__Phi_prime_prime() * self.__partial_net_partial_u(h, j) * \
                                 self.__partial_net_partial_u(m, j)
@@ -112,14 +86,27 @@ class NeuralNetworkPredictor(DynamicModel):
 
 
     def __partial_2_yn_partial_nph_partial_npm(self, h, m, j):
+        """
+             D^2yn
+        ---------------
+        Du(n+h) Du(n+m)
+
+        """
         weights = self.model.layers[j].get_weights()[0]
         hid = weights.shape[1]
         sum_output=0.0
         for i in range(hid):
             sum_output+= weights[j,i] * self.__partial_2_fnet_partial_nph_partial_npm(h, m, j)
+
+        self.previous_second_der = sum_output
         return sum_output
 
     def __partial_2_net_partial_u_nph_partial_npm(self, h, m, j):
+        """
+          D^2 net_j
+        -------------
+        Du(n+h)Du(n+m)
+        """
         weights = self.model.layers[j].get_weights()[0]
         sum_output=0.0
         for i in range(1, min(self.K, self.dd)):
@@ -127,17 +114,34 @@ class NeuralNetworkPredictor(DynamicModel):
         return sum_output
 
     def __partial_yn_partial_u(self, h, j):
+        """
+           D yn
+        -----------
+         D u(n+h)
+        """
         weights = self.model.layers[j].get_weights()[0]
         hid = self.model.layers[j].output_shape[1]
         sum_output = 0.0
         for i in range(hid):
             sum_output += weights[j, i] * self.__partial_fnet_partial_u( h, j)
+
+        self.previous_first_der = sum_output
         return sum_output
 
     def __partial_fnet_partial_u(self, h, j):
+        """
+        D f_j(net)
+        ---------
+         D u(u+h)
+        """
         return self.__Phi_prime()*self.__partial_net_partial_u(h, j)
 
     def __partial_net_partial_u(self, h, j):
+        """
+         D net_j
+        ---------
+        D u(n+h)
+        """
         weights = self.model.layers[j].get_weights()[0]
         self.nd = weights.shape[1] - 1
         sum_output = 0.0
@@ -154,6 +158,12 @@ class NeuralNetworkPredictor(DynamicModel):
 
 
     def __partial_delta_u_partial_u(self, j, h):
+        """
+        D delta u
+        ---------
+        D u(n+h)
+
+        """
         return kronecker_delta(h, j) - kronecker_delta(h, j-1)
 
     def compute_hessian(self, u, del_u):
