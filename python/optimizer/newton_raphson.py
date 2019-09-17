@@ -15,6 +15,7 @@ class NewtonRaphson(Optimizer):
         Jed Brown's algebraic solver
         """
         u = u0.copy()
+
         du = del_u.copy()
 
         Fu = self.d_model.Fu(u, du)

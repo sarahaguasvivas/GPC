@@ -105,7 +105,7 @@ class NeuralNetworkPredictor(DynamicModel):
     """
 
     def __partial_2_fnet_partial_nph_partial_npm(self, h, m, j):
-        return self.__Phi_prime()*self.__partial_2_net_partial_u_nph_partial_npm(h, j)*\
+        return self.__Phi_prime()*self.__partial_2_net_partial_u_nph_partial_npm(h, m,  j)*\
                         + self.__Phi_prime_prime() * self.__partial_net_partial_u(h, j) * \
                                 self.__partial_net_partial_u(m, j)
 
@@ -113,10 +113,10 @@ class NeuralNetworkPredictor(DynamicModel):
 
     def __partial_2_yn_partial_nph_partial_npm(self, h, m, j):
         weights = self.model.layers[j].get_weights()[0]
-        hid = self.model.layers[j].output_shape[1]
+        hid = weights.shape[1]
         sum_output=0.0
         for i in range(hid):
-            sum_output+= weights[j,i] * self.__partial_2_fnet_partial_nph_partial_npm(h, j)
+            sum_output+= weights[j,i] * self.__partial_2_fnet_partial_nph_partial_npm(h, m, j)
         return sum_output
 
     def __partial_2_net_partial_u_nph_partial_npm(self, h, m, j):
@@ -139,7 +139,7 @@ class NeuralNetworkPredictor(DynamicModel):
 
     def __partial_net_partial_u(self, h, j):
         weights = self.model.layers[j].get_weights()[0]
-        self.nd = self.model.layers[j].input_shape[1]-1
+        self.nd = weights.shape[1] - 1
         sum_output = 0.0
         for i in range(self.nd):
             if (self.K - self.Nu) < i:
@@ -172,7 +172,7 @@ class NeuralNetworkPredictor(DynamicModel):
 
 
                 for j in range(self.Nu):
-                    sum_output += kronecker_delta(h, j) * kronecker_delta(m, j) * ( 2.0*self.s/( u[j] + self.r/2. - self.b)**3 + 2.*self.s/(self.r/2. + self.b - u[j])**3)
+                    sum_output += kronecker_delta(h, j) * kronecker_delta(m, j) * ( 2.0*self.constraints.s/( u[j] + self.constraints.r/2. - self.constraints.b)**3 + 2.*self.constraints.s/(self.constraints.r/2. + self.constraints.b - u[j])**3)
 
                 Hessian[m, h] = sum_output
 
@@ -190,33 +190,18 @@ class NeuralNetworkPredictor(DynamicModel):
                 sum_output+=2*self.lambd[j]*del_u[j]*self.__partial_delta_u_partial_u(j, h)
 
             for j in range(self.Nu):
-                sum_output+=kronecker_delta(h, j) * ( -self.s/(u[j] + self.r/2. - self.b)**2  + \
-                                            self.s / (self.r/2. + self.b - u[j])**2    )
+                sum_output+=kronecker_delta(h, j) * ( -self.constraints.s/(u[j] + self.constraints.r/2. - self.constraints.b)**2  + \
+                                            self.constraints.s / (self.constraints.r/2. + self.constraints.b - u[j])**2    )
 
             dJ+=[sum_output]
         return dJ
 
     def Fu(self, u, del_u):
-        u = [0.0] + u.tolist()
-        u = np.array(u)
-        signal = self.measure(u)
-
-        u = np.reshape(u[1:], (1, -1))
-        u = np.concatenate((signal, u), axis = 1)
-
         jacobian = self.compute_jacobian(u, del_u)
         return jacobian
 
     def Ju(self, u, del_u):
-        u = [0.0] + u.tolist()
-        u = np.array(u)
-        signal = self.measure(u)
-
-        u = np.reshape(u[1:], (1, -1))
-        u = np.concatenate((signal, u), axis = 1)
-
-        # Compute hessian
-
+        self.Hessian = self.compute_hessian(u, del_u)
         return self.Hessian
 
     def compute_cost(self, del_u, u):
