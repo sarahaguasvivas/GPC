@@ -110,7 +110,7 @@ class NeuralNetworkPredictor(DynamicModel):
         weights = self.model.layers[j].get_weights()[0]
         sum_output=0.0
         for i in range(1, min(self.K, self.dd)):
-            sum_output+= weights[j, i+self.nd+1] * self.previous_second_der * kronecker_delta(self.K-i-1, 1)
+            sum_output+= weights[j, i+self.nd+1] * self.previous_second_der * step(self.K-i-1)
         return sum_output
 
     def __partial_yn_partial_u(self, h, j):
@@ -153,7 +153,7 @@ class NeuralNetworkPredictor(DynamicModel):
 
         for i in range(1, min(self.K, self.dd)):
             sum_output+= weights[j, i+self.nd+1] * self.previous_first_der * \
-                                                 kronecker_delta(self.K - i -1, 1)
+                                                 step(self.K - i -1)
         return sum_output
 
 

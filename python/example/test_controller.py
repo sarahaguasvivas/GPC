@@ -27,7 +27,6 @@ ym = []
 state = []
 
 for n in range(50):
-    print(n)
     seconds = time.time()
 
     future_outputs = NNP.predict(new_state_new)
@@ -65,7 +64,6 @@ elapsed = np.array(elapsed).flatten()
 ym = np.reshape(ym, (-1, 3))
 state = np.reshape(state, (-1, 3))
 u_optimal_list = np.reshape(u_optimal_list, (-1, 3))
-
 plt.subplot(4, 1, 1)
 plt.plot(elapsed)
 
