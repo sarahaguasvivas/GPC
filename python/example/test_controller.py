@@ -11,13 +11,12 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 filename= "../model_data/neural_network_2.hdf5"
 
-NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, ym = [2., 0.0], K = 5, yn = [0.]*2, lambd = [0.1]*3)
+NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, ym = [10., 0.0], K = 5, yn = [0.]*2, lambd = [1, 5.0, 5.0])
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
 new_state_new = np.random.multivariate_normal([0.0]*12, 1.5*np.eye(12), 1)
 new_state_new[:, -1] = 0.0
 new_state_new[:, -2] = 1.0
-new_state_new[:, -3] = 0.0
 
 du = [0.0]*3
 
@@ -26,12 +25,13 @@ u_optimal_list=[]
 ym = []
 state = []
 
-for n in range(50):
+for n in range(100):
     seconds = time.time()
 
     future_outputs = NNP.predict(new_state_new).flatten()
 
     NNP.yn[0] = future_outputs[0]
+
     NNP.yn[1] = np.arctan2(future_outputs[1], future_outputs[2])
 
     new_state_old = new_state_new
@@ -76,7 +76,7 @@ plt.ylabel("block distance")
 plt.subplot(3, 1, 3)
 plt.plot(ym[:, 1], '--k', label='target')
 plt.plot(state[:, 1], 'r', label = 'state')
-plt.ylabel("twist sine")
+plt.ylabel("twist")
 
 plt.show()
 
