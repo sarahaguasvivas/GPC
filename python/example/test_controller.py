@@ -11,7 +11,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 filename= "../model_data/neural_network_2.hdf5"
 
-NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, ym = [5., 0.0, 1.0], K = 5, yn = [0.]*3, lambd = [0.1]*3)
+NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, ym = [2., 0.0], K = 5, yn = [0.]*2, lambd = [0.1]*3)
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
 new_state_new = np.random.multivariate_normal([0.0]*12, 1.5*np.eye(12), 1)
@@ -29,11 +29,10 @@ state = []
 for n in range(50):
     seconds = time.time()
 
-    future_outputs = NNP.predict(new_state_new)
+    future_outputs = NNP.predict(new_state_new).flatten()
 
-    NNP.yn = future_outputs.flatten()
-
-    future_outputs = future_outputs.flatten()
+    NNP.yn[0] = future_outputs[0]
+    NNP.yn[1] = np.arctan2(future_outputs[1], future_outputs[2])
 
     new_state_old = new_state_new
 
@@ -57,40 +56,27 @@ for n in range(50):
 
     print("yn: ", NNP.yn, " time elapsed: ", elapsed[-1], " [s]")
     ym += [NNP.ym]
-    state += [new_state_new[:, -3:]]
-
+    state += [new_state_new[:, -3], np.arctan2(new_state_new[:, -2], new_state_new[:, -1])]
 
 elapsed = np.array(elapsed).flatten()
-ym = np.reshape(ym, (-1, 3))
-state = np.reshape(state, (-1, 3))
+ym = np.reshape(ym, (-1, 2))
+state = np.reshape(state, (-1, 2))
 u_optimal_list = np.reshape(u_optimal_list, (-1, 3))
-plt.subplot(4, 1, 1)
+
+plt.subplot(3, 1, 1)
 plt.plot(elapsed)
 
-plt.subplot(4, 1, 2)
+plt.subplot(3, 1, 2)
 plt.plot(ym[:, 0], '--k', label= 'target')
-plt.plot(state[:, 0], 'k', label = 'state')
-plt.plot(u_optimal_list[:, 0], 'r', label = 'control input')
+plt.plot(state[:, 0], 'r', label = 'state')
+
 plt.legend()
 plt.ylabel("block distance")
 
-plt.subplot(4, 1, 3)
+plt.subplot(3, 1, 3)
 plt.plot(ym[:, 1], '--k', label='target')
-plt.plot(state[:, 1], 'k', label = 'state')
-plt.plot(u_optimal_list[:, 1], 'r', label = 'control_input')
+plt.plot(state[:, 1], 'r', label = 'state')
 plt.ylabel("twist sine")
 
-plt.subplot(4, 1, 4)
-plt.plot(ym[:, 2], '--k', label = 'target')
-plt.plot(state[:, 2], 'k', label = 'state')
-plt.plot(u_optimal_list[:, 2], 'r', label = "control_input")
-plt.ylabel('twist cosine')
-plt.legend()
-plt.xlabel('timestamp')
 plt.show()
-
-
-
-
-
 
