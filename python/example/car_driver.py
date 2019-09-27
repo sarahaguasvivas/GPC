@@ -5,7 +5,7 @@ from optimizer.newton_raphson import *
 D2D = Driver2D(N1 = 5, N2= 10, Nu = 6, ym = [0.0]*2, K = 5, yn = [1.]*2, alpha = 1)
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
-new_state_new = np.random.multivariate_normal([.5]*6, 30*np.eye(6), 1).tolist()
+new_state_new = np.random.multivariate_normal([0.0]*6, 1.5*np.eye(6), 1).tolist()
 
 del_u = [0.5]*2
 u = [1.]*2
@@ -31,6 +31,10 @@ for n in range(1000):
     u = u_optimal
 
     new_state_new = D2D.predict(u = u_optimal, del_u = del_u, T = sim_step)
+
+    D2D.yn = [new_state_new[0], new_state_new[2]]
+
+    print("yn: ", D2D.yn, " ym: ", D2D.ym)
 
 
 

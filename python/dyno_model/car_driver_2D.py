@@ -37,7 +37,7 @@ class Driver2D(DynamicModel):
         self.half_car_width: float = self.width / 2
 
         super().__init__()
-        self.Cost = Driver2DCost(self, self.lambd)
+        self.Cost = Driver2DCost(self)
 
     def compute_hessian(self, u, del_u):
         pass

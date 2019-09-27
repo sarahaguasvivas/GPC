@@ -9,7 +9,6 @@ class Driver2DCost(Cost):
         N2      : maximum costing horizon
         Nu      : control horizon
         ym      : reference trajectory
-        lambd   : control input weighting factor (damper for u(n+1))
         s       : sharpness corners of constraint function
         r       : range of constraint
         b       : offset of the range
@@ -31,10 +30,7 @@ class Driver2DCost(Cost):
 
         # FIXME : this is supposed to be from N1 to N2
         for j in range(self.Nu):
-            self.cost += (self.ym[j] - self.yn[j])**2
-
-        for j in range(self.Nu):
-            self.cost += self.lambd[j]*(del_u[j])**2
+            self.cost += (self.ym[j] - self.yn[j])
 
         for j in range(self.Nu):
             self.cost += self.s/(u[j] + self.r / 2.0 - self.b) + self.s / (self.r/2.0 + self.b - u[j]) - 4.0 / self.r
