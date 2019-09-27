@@ -20,7 +20,7 @@ class Driver2DCost(Cost):
         self.cost= 0.0
         super().__init__()
 
-    def compute_cost(self, del_u : list, u : list):
+    def compute_cost(self, u : list, del_u : list):
         """
         del_u is a list of the element wise differences between current and
         previous control inputs
@@ -29,10 +29,10 @@ class Driver2DCost(Cost):
         self.cost = 0.0
 
         # FIXME : this is supposed to be from N1 to N2
-        for j in range(self.Nu):
-            self.cost += (self.ym[j] - self.yn[j])
+        for j in range(self.d_model.Nu):
+            self.cost += abs((self.d_model.ym[j] - self.d_model.yn[j]))
 
-        for j in range(self.Nu):
+        for j in range(self.d_model.Nu):
             self.cost += self.s/(u[j] + self.r / 2.0 - self.b) + self.s / (self.r/2.0 + self.b - u[j]) - 4.0 / self.r
 
         return self.cost

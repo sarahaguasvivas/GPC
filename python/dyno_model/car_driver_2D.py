@@ -15,7 +15,7 @@ class Driver2D(DynamicModel):
         self.Nu = Nu
         self.ym = ym
         self.alpha = alpha
-        self.state = [0.5]*self.Nu
+        self.state = [0.0]*6
         self.yn = yn
         self.K = K
         self.constraints = Constraints()
@@ -24,7 +24,7 @@ class Driver2D(DynamicModel):
         self.width: float = 1.83  # a typical car width (Toyota Camry)
         self.mass: float = 1500  # Toyota Camry gross mass (kg)
         self.Fcr = 0
-        self.Fcf= 0
+        self.Fcf= 0.5
         self.front_wheel_spacing: float = .8 * self.length / 2  # distance of front wheels from center of mass
         self.rear_wheel_spacing: float = .8 * self.length / 2  # distance of rear wheels from center of mass
         self.yaw_inertia: float = 14229.7 * .11308
@@ -58,10 +58,10 @@ class Driver2D(DynamicModel):
         a[1, 3] = 1
 
         b[1, 1] = 1
-        b[3, 0] = -2/self.mass*self.Fcf*np.sin(u[0])
-        # TODO
+        b[3, 0] = -2./self.mass*self.Fcf*np.sin(steering_angle)
 
-        self.Jacobian = np.dot(a, b)
+        self.Jacobian = self.alpha * np.dot(a, b)
+
         return self.Jacobian
 
     def Ju(self, u, del_u):
@@ -113,7 +113,8 @@ class Driver2D(DynamicModel):
         aux_state  = (self.road_friction_coefficient, steering_angle, acceleration)
 
         steps = np.arange(0.0, T, T / 10.0) # We're predicting after K steps
-        delta_ode_state = odeint(self.__integrator, self.state, steps, (u, del_u))
+
+        delta_ode_state = odeint(self.__integrator, self.state, steps, args= (u, del_u))
 
         return delta_ode_state[-1]
 
@@ -129,6 +130,7 @@ class Driver2D(DynamicModel):
         """
             Integrator
         """
+
         steering_angle = u[0]
         acceleration = u[1]
 
@@ -214,7 +216,7 @@ class Driver2D(DynamicModel):
             ratio = self.max_speed / speed
             dx, dy = dx * ratio, dy * ratio
 
-        return np.array([dx, x_dot_dot, dy, y_dot_dot, yaw_dot, yaw_dot_dot])
+        return [dx, x_dot_dot, dy, y_dot_dot, yaw_dot, yaw_dot_dot]
 
 
     def future_outputs(self, u, del_u):
