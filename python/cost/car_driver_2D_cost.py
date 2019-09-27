@@ -3,7 +3,7 @@ from dyno_model.car_driver_2D import *
 import constraints.constraints as constraints
 
 class Driver2DCost(Cost):
-    def __init__(self, dynamic_model, lambd : list):
+    def __init__(self, dynamic_model):
         """
         N1      : minimum costing horizon
         N2      : maximum costing horizon
@@ -15,12 +15,6 @@ class Driver2DCost(Cost):
         b       : offset of the range
         """
         self.d_model = dynamic_model
-        self.N1 = dynamic_model.N1
-        self.N2 = dynamic_model.N2
-        self.Nu = dynamic_model.Nu
-        self.ym = dynamic_model.ym
-        self.yn = dynamic_model.yn
-        self.lambd = dynamic_model.lambd
         self.s = self.d_model.constraints.s
         self.r = self.d_model.constraints.r
         self.b = self.d_model.constraints.b
@@ -33,7 +27,6 @@ class Driver2DCost(Cost):
         previous control inputs
         n is an int that represents the current discrete timestep
         """
-        print("ym: ", self.ym, "yn: ", self.yn)
         self.cost = 0.0
 
         # FIXME : this is supposed to be from N1 to N2

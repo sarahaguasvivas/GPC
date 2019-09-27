@@ -17,21 +17,21 @@ for n in range(100):
 
     future_outputs = D2D.predict(D2D.state, del_u)
 
+    D2D.yn[0] = D2D.state[0]
+    D2D.yn[1] = D2D.state[2]
+
     future_outputs = future_outputs.flatten()
 
     new_state_old = new_state_new
 
     u_optimal = np.reshape(D2D_opt.optimize(future_outputs, del_u, True)[0], (-1, 1))
 
-    del_u = np.array(new_state_old[:, -3:]) - np.array(u_optimal.flatten())
+    del_u = np.array(new_state_old) - np.array(u_optimal.flatten())
 
     del_u = del_u.flatten()
 
     u_optimal = np.array([u_optimal])
 
-    u_optimal = np.concatenate(([[[0.0]]], u_optimal), axis=1)
-
     signals = D2D.measure(u_optimal[:, :, 0])
 
-    new_state_new = np.concatenate((signals, np.reshape(u_optimal.flatten()[1:], (1, -1))), axis=1).flatten()
 

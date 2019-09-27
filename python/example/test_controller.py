@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from dyno_model.neural_network_predictor import *
 from optimizer.newton_raphson import *
-from cost.
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -43,7 +42,7 @@ for n in range(100):
 
     new_state_old = new_state_new
 
-    u_optimal = np.reshape(NR_opt.optimize(n, du, future_outputs, False)[0], (-1, 1))
+    u_optimal = np.reshape(NR_opt.optimize(future_outputs, du, False)[0], (-1, 1))
 
     u_optimal_list+=[u_optimal.flatten().tolist()]
 

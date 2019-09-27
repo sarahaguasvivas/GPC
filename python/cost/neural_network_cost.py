@@ -36,6 +36,9 @@ class NN_Cost(Cost):
         print("ym: ", self.ym, "yn: ", self.yn)
         self.cost = 0.0
 
+        self.ym = self.d_model.ym
+        self.yn = self.d_model.yn
+
         # FIXME : this is supposed to be from N1 to N2
         for j in range(self.Nu):
             self.cost += (self.ym[j] - self.yn[j])**2
