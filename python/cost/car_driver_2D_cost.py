@@ -28,7 +28,6 @@ class Driver2DCost(Cost):
         """
         self.cost = 0.0
 
-        # FIXME : this is supposed to be from N1 to N2
         for j in range(self.d_model.Nu):
             self.cost += abs((self.d_model.ym[j] - self.d_model.yn[j]))
 

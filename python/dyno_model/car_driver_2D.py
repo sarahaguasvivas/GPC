@@ -92,7 +92,9 @@ class Driver2D(DynamicModel):
         # slip angles
         beta = np.arctan((self.rear_wheel_spacing / (self.front_wheel_spacing + \
                                     self.rear_wheel_spacing)) * np.tan(steering_angle))
+
         speed = np.sqrt(x_dot ** 2 + y_dot ** 2)
+
         slip_angle = (speed / self.rear_wheel_spacing) * np.sin(beta)
         front_slip_angle = -slip_angle
         rear_slip_angle = 0.0  # TODO: this is probably not realistic
@@ -105,18 +107,20 @@ class Driver2D(DynamicModel):
         self.Fcr = -front_tire_cornering_stiffness * rear_slip_angle
 
         x_dot_dot = yaw_dot * y_dot + acceleration
+
         y_dot_dot = -yaw_dot * x_dot + (2 / self.mass) * \
                         (self.Fcf * np.cos(steering_angle) + self.Fcr)
 
         x_dot = max(x_dot, 0.0)  # Prevent reversing (longitudinal velocity)
+
         ode_state  = self.state
-        aux_state  = (self.road_friction_coefficient, steering_angle, acceleration)
 
         steps = np.arange(0.0, T, T / 10.0) # We're predicting after K steps
 
         delta_ode_state = odeint(self.__integrator, self.state, steps, args= (u, del_u))
-
-        return delta_ode_state[-1]
+        self.state = np.array(self.state) + np.array(delta_ode_state[-1])
+        print("delta x: ", delta_ode_state[-1], " state: ", self.state)
+        return self.state
 
     def compute_cost(self, u, del_u):
         # abstract
@@ -217,7 +221,6 @@ class Driver2D(DynamicModel):
             dx, dy = dx * ratio, dy * ratio
 
         return [dx, x_dot_dot, dy, y_dot_dot, yaw_dot, yaw_dot_dot]
-
 
     def future_outputs(self, u, del_u):
         # abstract
