@@ -39,7 +39,7 @@ class Driver2D(DynamicModel):
         self.Cost = Driver2DCost(self, self.lambd)
 
 
-    def compute_dynamics(self, n, del_u, u):
+    def compute_dynamics(self, u, del_u):
         """
         As we represent the dynamics as
         x_dot = f(x, u)
@@ -51,7 +51,7 @@ class Driver2D(DynamicModel):
         " No need for Hessian in this case. "
         pass
 
-    def compute_jacobian(self, n, del_u, u):
+    def compute_jacobian(self, u, del_u):
         self.Jacobian = np.zeros((self.Nu, self.Nu))
         self.Jacobian[0, 1] = 1
         self.Jacobian[1, 3] = self.state[5]
@@ -62,10 +62,10 @@ class Driver2D(DynamicModel):
         self.Jacobian[4, -1] = 1
         return self.Jacobian
 
-    def Ju(self, n , del_u, u):
-        return self.compute_jacobian(n, del_u, u)
+    def Ju(self, u, del_u):
+        return self.compute_jacobian(u, del_u)
 
-    def Fu(self, del_u, u):
+    def Fu(self, u, del_u):
         """
         x0 = x
         x1 = x_dot
@@ -111,16 +111,16 @@ class Driver2D(DynamicModel):
 
         return self.Fu
 
-    def compute_cost(self, del_u, u):
+    def compute_cost(self, u, del_u):
         # abstract
-        return self.Cost.compute_cost(del_u, u)
+        return self.Cost.compute_cost(u, del_u)
 
     def measure(self, u):
         # abstract
         pass
 
 
-    def __integrator(self, n, u, del_u):
+    def __integrator(self, u, del_u):
         """
             Integrator
         """
@@ -213,8 +213,8 @@ class Driver2D(DynamicModel):
         return np.array([dx, x_dot_dot, dy, y_dot_dot, yaw_dot, yaw_dot_dot])
 
 
-    def predict(self,n,  u, del_u):
+    def predict(self, u, del_u):
         # abstract
         # x is a vector with the sensor measurements and the current moves:
-        return self.__integrator(n, u, del_u )
+        return self.__integrator(u, del_u )
 

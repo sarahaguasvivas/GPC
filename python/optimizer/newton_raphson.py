@@ -1,7 +1,7 @@
 import numpy as np
 from .optimizer import *
-from cost.neural_network_cost import *
-from dyno_model.neural_network_predictor import *
+from cost.cost import *
+from dyno_model.dynamic_model import *
 
 class NewtonRaphson(Optimizer):
 
@@ -10,7 +10,7 @@ class NewtonRaphson(Optimizer):
         self.d_model = d_model
         super().__init__()
 
-    def __fsolve_newton(self, nth_timestep, del_u, u0, rtol=1e-8, maxit=5, verbose=False):
+    def __fsolve_newton(self, u0, del_u, rtol=1e-8, maxit=5, verbose=False):
         """
         Jed Brown's algebraic solver
         """
@@ -45,9 +45,9 @@ class NewtonRaphson(Optimizer):
                 break
         return u, i, du
 
-    def optimize(self, n, del_u, u, verbose):
+    def optimize(self, u, del_u, verbose):
        """ This is taken from fsolve_newton in """
-       return self.__fsolve_newton(n, del_u, u, rtol=1e-8, maxit = 8, verbose=verbose)
+       return self.__fsolve_newton(u, del_u, rtol=1e-8, maxit = 8, verbose=verbose)
 
 
 
