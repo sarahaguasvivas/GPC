@@ -16,7 +16,7 @@ sim_step = 0.1
 XY = []
 Targ = []
 
-for n in range(100):
+for n in range(1):
     # D2D.ym  reference model won't change
 
     new_state_old = new_state_new

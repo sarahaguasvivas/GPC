@@ -29,7 +29,7 @@ class Driver2DCost(Cost):
         self.cost = 0.0
 
         for j in range(self.d_model.Nu):
-            self.cost += abs((self.d_model.ym[j] - self.d_model.yn[j]))
+            self.cost += (self.d_model.ym[j] - self.d_model.yn[j])**2
 
         for j in range(self.d_model.Nu):
             self.cost += self.s/(u[j] + self.r / 2.0 - self.b) + self.s / (self.r/2.0 + self.b - u[j]) - 4.0 / self.r
