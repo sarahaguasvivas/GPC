@@ -10,9 +10,10 @@ class NewtonRaphson(Optimizer):
         self.d_model = d_model
         super().__init__()
 
-    def __fsolve_newton(self, u0, del_u, rtol=1e-8, maxit=100, verbose=False):
+    def __fsolve_newton(self, u0, del_u, rtol=1e-8, maxit=10, verbose=False):
         """
         Jed Brown's algebraic solver
+
         """
         u = u0.copy()
 

@@ -18,18 +18,20 @@ class Driver2D(DynamicModel):
         self.state = [0.0]*6
         self.yn = yn
         self.K = K
-        self.constraints = Constraints()
+        self.constraints = Constraints(s = 1e-10, r = 1, b = 1)
         self.collided: bool = False
         self.length: float = 4.9  # a typical car length (Toyota Camry)
         self.width: float = 1.83  # a typical car width (Toyota Camry)
         self.mass: float = 1500  # Toyota Camry gross mass (kg)
-        self.Fcr = 0
+
+        self.Fcr = 0.
         self.Fcf= 0.5
+
         self.front_wheel_spacing: float = .8 * self.length / 2  # distance of front wheels from center of mass
         self.rear_wheel_spacing: float = .8 * self.length / 2  # distance of rear wheels from center of mass
         self.yaw_inertia: float = 14229.7 * .11308
         self.road_friction_coefficient: float = .9  # .9 (dry road), .6 (wet road), .2 (snow), .05 (ice)
-
+        self.slip_coefficient = 1.0
         self.max_steering_angle: 60 / 360.0 * np.pi * 2  # TODO: make configurable
         self.max_speed = 200  # TODO: make configurable
 
@@ -51,17 +53,38 @@ class Driver2D(DynamicModel):
         steering_angle = u[0]
         acceleration = u[1]
 
+        x, x_dot, y, y_dot, yaw, yaw_dot = self.state
+        print("state:")
+        print(self.state)
+
         a = np.zeros((2, 6)) # partial h(eps)/partial eps * partial eps / partial u
         b = np.zeros((6, 2)) # partial eps / partial u
+
+        # slip angles
+        beta = np.arctan((self.rear_wheel_spacing / (self.front_wheel_spacing + \
+                                    self.rear_wheel_spacing)) * np.tan(steering_angle))
+
+        speed = np.sqrt(x_dot ** 2 + y_dot ** 2)
+
+        slip_angle = (speed / self.rear_wheel_spacing) * np.sin(beta)
+
+        front_slip_angle = - slip_angle
+
+        rear_slip_angle = 0.0  # TODO: this is probably not realistic
+
+        front_tire_cornering_stiffness = self.road_friction_coefficient * self.mass * (
+                self.rear_wheel_spacing / (self.front_wheel_spacing + self.rear_wheel_spacing))
+
+        self.Fcf = -front_tire_cornering_stiffness * front_slip_angle
+        self.Fcr = -front_tire_cornering_stiffness * rear_slip_angle
 
         a[0, 1] = 1
         a[1, 3] = 1
 
         b[1, 1] = 1
-        b[3, 0] = -2./self.mass*self.Fcf*np.sin(steering_angle)
+        b[3, 0] = -2. / self.mass * self.Fcf * np.sin(steering_angle)
 
         self.Jacobian = self.alpha * np.dot(a, b)
-
         return self.Jacobian
 
     def Ju(self, u, del_u):
@@ -70,6 +93,13 @@ class Driver2D(DynamicModel):
     def Fu(self, u, del_u):
         future_state = self.predict(u, del_u, self.K).tolist()
         return [future_state[0], future_state[1]]
+
+    def __dampen(self, val, lim, coef):
+        damped = val*coef
+        if np.abs(damped) < lim:
+            return 0.0
+        else:
+            return damped
 
     def predict(self, u, del_u, T):
         """
@@ -86,40 +116,28 @@ class Driver2D(DynamicModel):
         """
         x, x_dot, y, y_dot, yaw, yaw_dot = self.state
 
+        old_state = self.state
+
         steering_angle = u[0]
         acceleration = u[1] # acceleration
-
-        # slip angles
-        beta = np.arctan((self.rear_wheel_spacing / (self.front_wheel_spacing + \
-                                    self.rear_wheel_spacing)) * np.tan(steering_angle))
-
-        speed = np.sqrt(x_dot ** 2 + y_dot ** 2)
-
-        slip_angle = (speed / self.rear_wheel_spacing) * np.sin(beta)
-        front_slip_angle = -slip_angle
-        rear_slip_angle = 0.0  # TODO: this is probably not realistic
-
-        # tire cornering stiffness
-        front_tire_cornering_stiffness = self.road_friction_coefficient * self.mass * (
-                self.rear_wheel_spacing / (self.front_wheel_spacing + self.rear_wheel_spacing))
-
-        self.Fcf = -front_tire_cornering_stiffness * front_slip_angle
-        self.Fcr = -front_tire_cornering_stiffness * rear_slip_angle
-
-        x_dot_dot = yaw_dot * y_dot + acceleration
-
-        y_dot_dot = -yaw_dot * x_dot + (2 / self.mass) * \
-                        (self.Fcf * np.cos(steering_angle) + self.Fcr)
-
-        x_dot = max(x_dot, 0.0)  # Prevent reversing (longitudinal velocity)
 
         ode_state  = self.state
 
         steps = np.arange(0.0, T, T / 10.0) # We're predicting after K steps
 
-        delta_ode_state = odeint(self.__integrator, self.state, steps, args= (u, del_u))
-        self.state = np.array(self.state) + np.array(delta_ode_state[-1])
-        print("delta x: ", delta_ode_state[-1], " state: ", self.state)
+        delta_ode_state = odeint(self.__integrator, ode_state, steps, args= (u, steering_angle, acceleration, del_u))
+
+        self.state = np.array(delta_ode_state[-1])
+
+        v_x = (x - old_state[0]) / T
+        v_y = (y - old_state[2]) / T
+
+        speed = np.sqrt(v_x**2 + v_y**2)
+
+        self.state[3] = self.__dampen(self.state[3], lim=0.1, coef = self.slip_coefficient)
+
+        self.state[5] = self.__dampen(self.state[5], lim=0.0017, coef = 0.95)
+
         return self.state
 
     def compute_cost(self, u, del_u):
@@ -130,14 +148,11 @@ class Driver2D(DynamicModel):
         # abstract
         pass
 
-    def __integrator(self, state, t,  u, del_u):
+    def __integrator(self, state, t,  u, steering_angle, acceleration, del_u):
         """
             Integrator
+
         """
-
-        steering_angle = u[0]
-        acceleration = u[1]
-
         x, x_dot, y, y_dot, yaw, yaw_dot = state
 
         x_dot = max(x_dot, 0.0)
@@ -157,6 +172,7 @@ class Driver2D(DynamicModel):
         rear_slip_angle = 0.0  # TODO find out expression that depends on frict coeff
 
         #### TIRE CORNERING STIFFNESS:
+
         front_tire_cornering_stiffness = self.road_friction_coefficient * \
                                          self.mass * (self.rear_wheel_spacing / \
                                                       (self.front_wheel_spacing + \
@@ -186,6 +202,7 @@ class Driver2D(DynamicModel):
 
         if speed > self.max_speed:
             a = x_dot_dot ** 2 + y_dot_dot ** 2
+
             b = 2.0 * (x_dot_dot * x_dot + \
                        y_dot_dot * y_dot
                        )
@@ -201,7 +218,8 @@ class Driver2D(DynamicModel):
                 ratios = (-b + np.sqrt(b ** 2 - 4 * a * c)) / (2.0 * a), \
                          (-b - np.sqrt(b ** 2 - 4.0 * a * c)) / (2.0 * a)
                 ratio = max(ratios)
-            x_dot_dot, y_dot = x_dot_dot * ratio, y_dot_dot * ratio
+
+            x_dot_dot, y_dot_dot = x_dot_dot * ratio, y_dot_dot * ratio
 
         yaw_dot_dot = (2.0 / self.yaw_inertia) * \
                            (self.front_wheel_spacing * \
@@ -210,9 +228,9 @@ class Driver2D(DynamicModel):
                             rear_tire_cornering_force)
 
         dx = x_dot * np.cos(yaw) - \
-             y_dot * np.sin(yaw)
+                y_dot * np.sin(yaw)
         dy = x_dot * np.sin(yaw) + \
-             y_dot * np.sin(yaw)
+                y_dot * np.sin(yaw)
 
         #### CLAMP VELOCITY:
         speed = np.sqrt(dx ** 2 + dy ** 2)
