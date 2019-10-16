@@ -9,12 +9,12 @@ from scipy.integrate import odeint
 class Driver2D(DynamicModel):
     def __init__(self, N1 : int, \
                         N2 : int, Nu : int, ym : list, K : int, \
-                         yn : list, alpha : float):
+                         yn : list, lambd : list):
         self.N1 = N1
         self.N2 = N2
         self.Nu = Nu
         self.ym = ym
-        self.alpha = alpha
+        self.lambd = lambd
         self.state = [0.0]*6
         self.yn = yn
         self.K = K
@@ -54,8 +54,6 @@ class Driver2D(DynamicModel):
         acceleration = u[1]
 
         x, x_dot, y, y_dot, yaw, yaw_dot = self.state
-        print("state:")
-        print(self.state)
 
         a = np.zeros((2, 6)) # partial h(eps)/partial eps * partial eps / partial u
         b = np.zeros((6, 2)) # partial eps / partial u
@@ -84,7 +82,7 @@ class Driver2D(DynamicModel):
         b[1, 1] = 1
         b[3, 0] = -2. / self.mass * self.Fcf * np.sin(steering_angle)
 
-        self.Jacobian = self.alpha * np.dot(a, b)
+        self.Jacobian = np.dot(a, b)
         return self.Jacobian
 
     def Ju(self, u, del_u):
@@ -92,7 +90,7 @@ class Driver2D(DynamicModel):
 
     def Fu(self, u, del_u):
         future_state = self.predict(u, del_u, self.K).tolist()
-        return [future_state[0], future_state[1]]
+        return [future_state[0], future_state[2]]
 
     def __dampen(self, val, lim, coef):
         damped = val*coef
@@ -118,7 +116,7 @@ class Driver2D(DynamicModel):
 
         old_state = self.state
 
-        steering_angle = u[0]
+        steering_angle = u[0] % np.pi / 4.0
         acceleration = u[1] # acceleration
 
         ode_state  = self.state
@@ -134,8 +132,9 @@ class Driver2D(DynamicModel):
 
         speed = np.sqrt(v_x**2 + v_y**2)
 
+        # y_dot:
         self.state[3] = self.__dampen(self.state[3], lim=0.1, coef = self.slip_coefficient)
-
+        # yaw_rate:
         self.state[5] = self.__dampen(self.state[5], lim=0.0017, coef = 0.95)
 
         return self.state

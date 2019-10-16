@@ -3,13 +3,14 @@ from dyno_model.car_driver_2D import *
 from optimizer.newton_raphson import *
 import matplotlib.pyplot as plt
 
-D2D = Driver2D(N1 = 5, N2= 10, Nu = 2, ym = [1.0, 10.0], K = 0.1, yn = [1.]*2, alpha = 1e-8)
+# ym is target x and y
+D2D = Driver2D(N1 = 5, N2= 10, Nu = 2, ym = [10.0, 10.0], K = 0.5, yn = [1.]*2, lambd = [1., 1.])
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
 new_state_new = np.random.multivariate_normal([0, 0, 0, 0, 0, 0], 1.5*np.eye(6), 1).tolist()
 
 del_u = [0.0]*2
-u = [0.02, 10.0]
+u = [0.05, 50.0]
 
 sim_step = 0.1
 
@@ -17,7 +18,7 @@ XY = []
 Targ = []
 state = []
 
-for n in range(1000):
+for n in range(100):
 
     # D2D.ym  reference model won't change
     new_state_old = new_state_new
