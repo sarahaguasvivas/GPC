@@ -48,7 +48,7 @@ class NewtonRaphson(Optimizer):
 
     def optimize(self, u, del_u, verbose):
        """ This is taken from fsolve_newton in """
-       return self.__fsolve_newton(u, del_u, rtol=1e-8, maxit = 10, verbose=verbose)
+       return self.__fsolve_newton(u, del_u, rtol=1e-8, maxit = 8, verbose=verbose)
 
 
 

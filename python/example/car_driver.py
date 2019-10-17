@@ -4,7 +4,7 @@ from optimizer.newton_raphson import *
 import matplotlib.pyplot as plt
 
 # ym is target x and y
-D2D = Driver2D(N1 = 0, N2= 5, Nu = 2, ym = [10.0, 10.0], K = 1.0, yn = [1.]*2, lambd = [1., 0.5], alpha = 0.5)
+D2D = Driver2D(N1 = 0, N2= 5, Nu = 2, ym = [10.0, 10.0], K = 1.0, yn = [1.]*2, lambd = [0.5, 0.5], alpha = 1.)
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
 new_state_new = np.random.multivariate_normal([0, 0, 0, 0, 0, 0], 1.5*np.eye(6), 1).tolist()
