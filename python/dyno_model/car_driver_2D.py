@@ -9,9 +9,10 @@ from scipy.integrate import odeint
 class Driver2D(DynamicModel):
     def __init__(self, N1 : int, \
                         N2 : int, Nu : int, ym : list, K : int, \
-                         yn : list, lambd : list):
+                        yn : list, lambd : list, alpha : float):
         self.N1 = N1
         self.N2 = N2
+        self.alpha = alpha
         self.Nu = Nu
         self.ym = ym
         self.lambd = lambd
@@ -82,7 +83,8 @@ class Driver2D(DynamicModel):
         b[1, 1] = 1
         b[3, 0] = -2. / self.mass * self.Fcf * np.sin(steering_angle)
 
-        self.Jacobian = np.dot(a, b)
+        self.Jacobian = self.alpha*np.dot(a, b)
+
         return self.Jacobian
 
     def Ju(self, u, del_u):
@@ -116,7 +118,8 @@ class Driver2D(DynamicModel):
 
         old_state = self.state
 
-        steering_angle = u[0] % np.pi / 4.0
+        steering_angle = u[0]
+
         acceleration = u[1] # acceleration
 
         ode_state  = self.state
@@ -128,12 +131,14 @@ class Driver2D(DynamicModel):
         self.state = np.array(delta_ode_state[-1])
 
         v_x = (x - old_state[0]) / T
+
         v_y = (y - old_state[2]) / T
 
         speed = np.sqrt(v_x**2 + v_y**2)
 
         # y_dot:
         self.state[3] = self.__dampen(self.state[3], lim=0.1, coef = self.slip_coefficient)
+
         # yaw_rate:
         self.state[5] = self.__dampen(self.state[5], lim=0.0017, coef = 0.95)
 

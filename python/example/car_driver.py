@@ -4,13 +4,14 @@ from optimizer.newton_raphson import *
 import matplotlib.pyplot as plt
 
 # ym is target x and y
-D2D = Driver2D(N1 = 5, N2= 10, Nu = 2, ym = [10.0, 10.0], K = 0.5, yn = [1.]*2, lambd = [1., 1.])
+D2D = Driver2D(N1 = 0, N2= 5, Nu = 2, ym = [10.0, 10.0], K = 1.0, yn = [1.]*2, lambd = [1., 0.5], alpha = 0.5)
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
 new_state_new = np.random.multivariate_normal([0, 0, 0, 0, 0, 0], 1.5*np.eye(6), 1).tolist()
+start= [new_state_new[0][0], new_state_new[0][2]]
 
 del_u = [0.0]*2
-u = [0.05, 50.0]
+u = [0.05, 10.0]
 
 sim_step = 0.1
 
@@ -18,12 +19,14 @@ XY = []
 Targ = []
 state = []
 
-for n in range(100):
+for n in range(2):
 
     # D2D.ym  reference model won't change
     new_state_old = new_state_new
 
     D2D.state = np.array(new_state_new).flatten()
+
+    state += [D2D.state[[0, 2]]]
 
     D2D.compute_cost(u, del_u)
 
@@ -33,7 +36,7 @@ for n in range(100):
 
     u_optimal = np.reshape(D2D_opt.optimize(u, del_u, True)[0], (-1, 1))
 
-    del_u = u - np.array(u_optimal.flatten())
+    del_u =  np.array(u_optimal.flatten()) - u
 
     del_u = del_u.flatten().tolist()
 
@@ -45,20 +48,23 @@ for n in range(100):
 
     D2D.state = new_state_new
 
-#    print("yn: ", D2D.yn, " ym: ", D2D.ym)
-
     XY += [D2D.yn]
-    state += [D2D.state[[0, 2]]]
+
     Targ += [D2D.ym]
 
 XY = np.reshape(XY, (-1, 2))
 Targ = np.reshape(Targ, (-1, 2))
 state = np.reshape(state, (-1, 2))
 
-for i in range(XY.shape[1]):
-    plt.subplot(1, 2, i+1)
-    plt.plot(state[:, i], 'r')
-    plt.plot(Targ[:, i], '--k')
+labels = ["X", "Y"]
+
+verts = np.array([[-1, -1], [1, -1], [1, 1], [-1, -1]])
+plt.plot(state[:, 0], state[:, 1], 'ok')
+plt.scatter(Targ[:, 0], Targ[:, 1], c= 'r', marker = (5,2))
+plt.scatter(start[0], start[1], c='b', marker = (5, 2))
+plt.title("Position in XY Coordinates")
+plt.xlabel("X [m]")
+plt.ylabel("Y [m]")
 
 plt.show()
 
