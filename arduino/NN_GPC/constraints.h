@@ -12,7 +12,6 @@
  */
 
 
-
 struct Constraints{
     
     float s, r, b;
