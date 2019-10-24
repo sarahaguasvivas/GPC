@@ -8,9 +8,9 @@ class DynamicModel(ABC):
     def predict(self):
         pass
 
-    @abstractmethod
-    def compute_jacobian(self):
-        pass
+#    @abstractmethod
+#    def compute_jacobian(self):
+#        pass
 
     @abstractmethod
     def compute_cost(self):
@@ -24,14 +24,14 @@ class DynamicModel(ABC):
     def Fu(self):
         pass
 
-    @abstractmethod
-    def measure(self):
-        pass
+#    @abstractmethod
+#    def measure(self):
+#        pass
 
     @abstractmethod
     def predict(self):
         pass
 
-    @abstractmethod
-    def compute_hessian(self):
-        pass
+#    @abstractmethod
+#    def compute_hessian(self):
+#        pass
