@@ -2,7 +2,7 @@
 
 
 /* 
- *                    This is an implementation of Newton Raphson
+ *  This is an implementation of Newton Raphson Applied to the Neural Networks
  * 
  * Taken from 
  * Numerical Recipes in C: The Art of Scientific Computing by Press et.al. (1988)
@@ -12,8 +12,6 @@
 float rtnewt(void (*funcd)(float, float *, float *), float x1, float x2,
         float xacc)
    {
-    // TODO: Need to implement multidimensional Newton Raphson
-   
     void nrerror(char error_text[]);
     int j;
     float df,dx,f,rtn;
@@ -27,5 +25,5 @@ float rtnewt(void (*funcd)(float, float *, float *), float x1, float x2,
                 if (fabs(dx) < xacc) return rtn; //Convergence.
         }
     nrerror("Maximum number of iterations exceeded in rtnewt");
-    return 0.0; //Never get here.
+    return 0.0; 
 }

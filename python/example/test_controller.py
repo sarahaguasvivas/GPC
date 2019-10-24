@@ -11,7 +11,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 filename= "../model_data/neural_network_2.hdf5"
 
-NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, ym = [10., 0.5], K = 4, yn = [0.]*2, lambd = [1, 2.0, 5.0])
+NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, ym = [10., 0.5], K = 2, yn = [0.]*2, lambd = [1., .1, .1])
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
 new_state_new = np.random.multivariate_normal([0.0]*12, 1.5*np.eye(12), 1)
@@ -33,16 +33,16 @@ for n in range(100):
     NNP.yn[1] = np.arctan2(future_outputs[-2], future_outputs[-1])
     NNP.yn[1] = (NNP.yn[1]) % np.pi
 
-    if np.sin(0.5*n) > 0:
+    if np.sin(0.05*n) > 0:
         NNP.ym[0] = 1
-        NNP.ym[1] = 1
+        NNP.ym[1] = 0.5
     else:
         NNP.ym[0] = 0
         NNP.ym[1] = 0
 
     new_state_old = new_state_new
 
-    u_optimal = np.reshape(NR_opt.optimize(future_outputs, du, False)[0], (-1, 1))
+    u_optimal = np.reshape(NR_opt.optimize(u= future_outputs, del_u= du, rtol = 1e-8, maxit=6, verbose=True)[0], (-1, 1))
 
     u_optimal_list+=[u_optimal.flatten().tolist()]
 

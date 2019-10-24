@@ -48,10 +48,6 @@ float * fwdDense(struct Dense L, float* input)
             h[i] += *(L.weights + j*L.weight_shape[1] + i)*input[j];
 		}
 
-
-        // TODO: Make more elegant:
-        // linear not here cause no action
-
         if (L.activation==0x08){ //sigmoid
             h[i] = exp(h[i])/(exp(h[i]) + 1);
         }

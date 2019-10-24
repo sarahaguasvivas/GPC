@@ -6,14 +6,12 @@
 #include "constraints.h"
 
 struct NN_Predictor{
-
     int N1, N2, Nu;
     float ym[2];
     float yn[2];
     int K; // Prediction Horizon
     int output_size;
     int input_size;
-
 };
 
 struct NN_Predictor create_dynamic_model(int, int, int, float *, float *, int, int, int, int);
