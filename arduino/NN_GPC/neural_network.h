@@ -24,7 +24,4 @@ struct Dense dense_1;
 struct Dense dense_2;
 
 
-
-
 #endif
-

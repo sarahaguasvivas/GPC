@@ -11,10 +11,7 @@
  * 
  */
 
-
-
-
-
+float * NN_GPC(float*);
 void buildLayers();
 float * fwdNN(float*);
 

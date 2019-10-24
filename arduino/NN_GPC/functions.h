@@ -4,6 +4,6 @@
 #include <math.h>
 
 float kronecker_delta(int, int);
-float step(float);
+float step_(float);
 
 #endif

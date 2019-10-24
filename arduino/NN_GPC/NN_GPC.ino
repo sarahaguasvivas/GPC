@@ -17,7 +17,21 @@ int maxstep=18;//number of angles
 int n=0;//number of times position of ring moves
 int off = 90;//ring servo off value
 int done = 0;
-float window[14];
+
+
+// SARAH: Added this
+int n_control_parameters = 2;
+
+//
+
+float * window;
+float u_optimal[n_control_parameters];
+int N1, N2, Nu, K;
+float ym[n_control_parameters];
+float yn[n_control_parameters];
+float lambda[3];
+
+//
 
 void setup() {
   Serial.begin(9600);
@@ -35,7 +49,7 @@ void setup() {
   twist=(-pi/2+float(twistServo.read())/180*pi)*.67778;//twist angle
   
   buildLayers(); // SARAH: added this to build the neural network layers. 
-
+  
 }
 
 void loop() {
@@ -55,10 +69,9 @@ void loop() {
       delay(wait);
       count=1;
       twist=(-pi/2+float(twistServo.read())/180*pi)*.67778;
-      //
+
       takeData();
-      u_optimal = NN_GPC(window); // SARAH: added this line to figure out best output
-      //
+  
       times++;
     }
     else {//move position of ring
@@ -74,17 +87,16 @@ void loop() {
          times=0;
          count=1;
          twist=(-pi/2+float(twistServo.read())/180*pi)*.67778;
-         //
+         
          takeData(); 
-         u_optimal = NN_GPC(window); // SARAH: added this line to figure out best output
-         //
+
        }
        else{
           done = 1;
        }
     }
   }
-  else{//restet to neutral position
+  else{ //reset to neutral position
     twistServo.write(90);
     if (n==11){
       pinonServo.write(180);
@@ -93,10 +105,13 @@ void loop() {
       n++;
     }
   }
+
+   u_optimal = NN_GPC(window, int N1, int N2, int Nu, int K, float ym, float yn, float lambda); // SARAH: added this line to figure out best output
 }
 
 void takeData(){
-
+      window = (float*)malloc(12*sizeof(float));
+      
       window[0] = analogRead(A0);
       window[1] = analogRead(A1);
       window[2] = analogRead(A2);
