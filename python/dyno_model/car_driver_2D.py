@@ -67,8 +67,8 @@ class Driver2D(DynamicModel):
             inputs:
             u[0] : acceleration
             u[1] : steering
-        """
 
+        """
         C = np.zeros((2, 6)) # partial h(eps)/partial eps * partial eps / partial u
 
         self.__update_cornering_forces(self.state, u)
@@ -147,7 +147,7 @@ class Driver2D(DynamicModel):
                         [0, 1],
                         [-2./self.mass*self.Fcf*np.sin(steering), 0],
                         [0, 0],
-                        [-2./self.yaw_inertial*self.left_wheel_spacing*self.Fcf*np.sin(steering), 0]])
+                        [-2./self.yaw_inertia*self.front_wheel_spacing*self.Fcf*np.sin(steering), 0]])
 
     def __integrator(self, state, t,  u, del_u):
         """
@@ -171,14 +171,13 @@ class Driver2D(DynamicModel):
         self.__update_cornering_forces(state, u)
 
         #x_2 = max(x_2, 0.0) # ensuring TODO: see if I need it
-
         x_0_dot = x_2*np.cos(x_4) - x_3*np.sin(x_4)
         x_1_dot = x_2*np.sin(x_4) + x_3*np.cos(x_4)
         x_2_dot = x_5*x_3 + acceleration
         x_3_dot = -x_5*x_2 + 2./self.mass*(self.Fcf * np.cos(steering_angle) + self.Fcr)
-        x_4_dot = x_5
+        x_4_dot =  x_5
         x_5_dot = 2./self.yaw_inertia * (self.front_wheel_spacing * self.Fcf * np.cos(steering_angle) - self.rear_wheel_spacing*self.Fcr)
-        x_6_dot = np.dot(self._partial_f_partial_xi , x_6) + self._partial_f_partial_u
+        x_6_dot = np.dot(self._partial_f_partial_xi(self.state, u) ,  x_6) + self._partial_f_partial_u(self.state, u)
         return [x_0_dot, x_1_dot, x_2_dot, x_3_dot, x_4_dot, x_6_dot]
 
     def future_outputs(self, u, del_u):

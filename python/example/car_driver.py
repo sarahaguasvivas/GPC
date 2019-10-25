@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 D2D = Driver2D(N1 = 0, N2= 5, Nu = 2, ym = [10.0, 10.0], K = 0.5, yn = [1.]*2, lambd = [1., 1.0], alpha = 30.0) # alpha is the speedup coefficient
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
-new_state_new = [0, 0, 0, 0, 0, np.array([0, 0])]
+new_state_new = [0, 0, 0, 0, 0, 0, 0]
 start= [new_state_new[0], new_state_new[1]]
 
 del_u = [0.0]*2
