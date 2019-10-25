@@ -28,16 +28,8 @@ class Driver2DCost(Cost):
         """
         self.cost = 0.0
 
-        for j in range(self.d_model.Nu):
-            self.cost += self.d_model.lambd[j]*(self.d_model.ym[j] - self.d_model.yn[j])**2
+        self.cost= np.linalg.norm(self.d_model.ym - np.array(self.d_model.yn))
 
-        #for j in range(self.d_model.Nu):
-        #    self.cost += self.d_model.alpha*(del_u[j])**2
-
-        #for j in range(self.d_model.Nu):
-        #    self.cost += self.s /(u[j] + self.r / 2.0 - self.b) + self.s / (self.r/2.0 + self.b - u[j]) - 4.0 / self.r
-
-        print("cost.py: Cost: ", self.cost)
         return self.cost
 
 
