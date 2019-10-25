@@ -77,7 +77,6 @@ class Driver2D(DynamicModel):
         C[1, 1] = 1
 
         x_6 = np.reshape(self.state[6:], (-1, 2))
-        print(np.dot(C, x_6))
         return np.dot(C, x_6)
 
     def Ju(self, u, del_u):
@@ -85,8 +84,7 @@ class Driver2D(DynamicModel):
 
     def Fu(self, u, del_u):
         future_state = self.predict(u, del_u, self.K).tolist()
-        fu = np.array(self.ym) - np.array(future_state[:2])
-        return fu
+        return future_state[:2]
 
     def __dampen(self, val, lim, coef):
         damped = val*coef
@@ -173,7 +171,7 @@ class Driver2D(DynamicModel):
         x_6 = state[6:]
 
         self.__update_cornering_forces(state, u)
-
+        x_3 = max(0, x_3)
         x_0_dot = x_2*np.cos(x_4) - x_3*np.sin(x_4)
         x_1_dot = x_2*np.sin(x_4) + x_3*np.cos(x_4)
         x_2_dot = x_5*x_3 + acceleration

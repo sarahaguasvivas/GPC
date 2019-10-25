@@ -26,10 +26,9 @@ class Driver2DCost(Cost):
         previous control inputs
         n is an int that represents the current discrete timestep
         """
-        self.cost = 0.0
 
         self.cost= np.linalg.norm(self.d_model.ym - np.array(self.d_model.yn))
-
+        print("Cost: ",  self.cost)
         return self.cost
 
 
