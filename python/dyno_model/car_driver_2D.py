@@ -62,7 +62,7 @@ class Driver2D(DynamicModel):
             x_3 : y_dot
             x_4 : yaw
             x_5 : yaw_dot
-            x_6 : partial_xi_partial_u (1x2 vector)
+            x_6 : partial_xi_partial_u (5x2 vector)
 
             inputs:
             u[0] : acceleration
@@ -76,15 +76,16 @@ class Driver2D(DynamicModel):
         C[0, 0] = 1
         C[1, 1] = 1
 
-        return np.dot(C, np.dot(self._partial_f_partial_xi(self.state, u) , x_6) + self._partial_f_partial_u(self.state, u))
+        x_6 = np.reshape(self.state[6:], (-1, 2))
+
+        return np.dot(C, np.dot(self._partial_f_partial_xi(self.state, u).T , x_6) + self._partial_f_partial_u(self.state, u))
 
     def Ju(self, u, del_u):
         return self.compute_jacobian(u, del_u)
 
     def Fu(self, u, del_u):
         future_state = self.predict(u, del_u, self.K).tolist()
-        print("future_state: ", future_state)
-        return [future_state[0], future_state[1]]
+        return future_state[:2]
 
     def __dampen(self, val, lim, coef):
         damped = val*coef
@@ -108,48 +109,54 @@ class Driver2D(DynamicModel):
             u[0] : acceleration
             u[1] : steering
         """
+
         old_state = self.state
 
-        steps = np.arange(0.0, T, T / 10.0) # We're predicting after K steps
+        steps = np.arange(0.0, T, T / 10.0) # We're predicting after T steps
 
-        delta_ode_state = odeint(self.__integrator, old_state, steps, args= (u, del_u))
+        delta_ode_state = odeint(self.__integrator, old_state, steps, args= (u,del_u))
 
-        self.state = np.array(delta_ode_state[-1])
+        state = delta_ode_state[-1]
 
-        return self.state
+        return state
 
     def compute_cost(self, u, del_u):
-        # abstract
         return self.Cost.compute_cost(u, del_u)
 
     def __update_cornering_forces(self, state, u):
+
         acceleration, steering = u
-        x_0, x_1, x_2, x_3, x_4, x_5, _ = state
+
+        x_0, x_1, x_2, x_3, x_4, x_5 = state[:6]
+
         self.Fcf = self.cornering_stiffness * (steering - np.arctan((x_3 + self.front_wheel_spacing*x_5) / x_2))
+
         self.Fcr = - self.cornering_stiffness * np.arctan((x_3- self.rear_wheel_spacing*x_5) / x_2)
 
     def _partial_f_partial_xi(self, state, u):
         acceleration, steering = u
-        x_0, x_1, x_2, x_3, x_4, x_5, _  = state
 
-        return np.array([[0, 0, np.cos(x_4), -np.sin(x_4), -x_2*np.sin(x_4) - x_3*np.cos(x_4), 0],
-                [0, 0, np.sin(x_4), np.cos(x_4), x_2*np.cos(x_4) - x_3*np.sin(x_4), 0],
+        x_0, x_1, x_2, x_3, x_4, x_5 = state[:6]
+
+        return np.array([[1, 0, np.cos(x_4), -np.sin(x_4), -x_2*np.sin(x_4) - x_3*np.cos(x_4), 0],
+                [0, 1, np.sin(x_4), np.cos(x_4), x_2*np.cos(x_4) - x_3*np.sin(x_4), 0],
                 [0, 0, 0, x_5, 0, x_3],
                 [0, 0, -x_5, 0, 0, -x_2],
                 [0, 0, 0, 0, 0, 1]])
 
     def _partial_f_partial_u(self, state, u):
         acceleration, steering = u
-        x_0, x_1, x_2, x_3, x_4, x_5, _ = state
 
-        return np.array([[0, 0],
-                        [0, 0],
-                        [0, 1],
-                        [-2./self.mass*self.Fcf*np.sin(steering), 0],
-                        [0, 0],
-                        [-2./self.yaw_inertia*self.front_wheel_spacing*self.Fcf*np.sin(steering), 0]])
+        x_0, x_1, x_2, x_3, x_4, x_5 = state[:6]
 
-    def __integrator(self, state, t,  u, del_u):
+        return np.array([[0, -x_2*np.sin(steering) - x_3*np.cos(steering)],
+                        [0, x_2*np.cos(steering) - x_3*np.sin(steering)],
+                        [1, 0],
+                        [0, -2./self.mass*self.Fcf*np.sin(steering)],
+                        [0, 0],
+                        [0, -2./self.yaw_inertia*self.front_wheel_spacing*self.Fcf*np.sin(steering)]])
+
+    def __integrator(self, state, t, u, del_u):
         """
         states:
             x_0 : x
@@ -166,23 +173,35 @@ class Driver2D(DynamicModel):
         """
         acceleration, steering_angle = u
 
-        x_0, x_1, x_2, x_3, x_4, x_5, x_6 = state
+        x_0, x_1, x_2, x_3, x_4, x_5 = state[:6]
+        x_6 = state[6:]
 
         self.__update_cornering_forces(state, u)
 
-        #x_2 = max(x_2, 0.0) # ensuring TODO: see if I need it
+        x_2 = max(x_2, 0.0) # ensuring TODO: see if I need it
+
         x_0_dot = x_2*np.cos(x_4) - x_3*np.sin(x_4)
         x_1_dot = x_2*np.sin(x_4) + x_3*np.cos(x_4)
         x_2_dot = x_5*x_3 + acceleration
-        x_3_dot = -x_5*x_2 + 2./self.mass*(self.Fcf * np.cos(steering_angle) + self.Fcr)
+        x_3_dot = -x_5*x_2 + 2./self.mass * (self.Fcf * np.cos(steering_angle) + self.Fcr)
         x_4_dot =  x_5
+
         x_5_dot = 2./self.yaw_inertia * (self.front_wheel_spacing * self.Fcf * np.cos(steering_angle) - self.rear_wheel_spacing*self.Fcr)
-        x_6_dot = np.dot(self._partial_f_partial_xi(self.state, u) ,  x_6) + self._partial_f_partial_u(self.state, u)
-        return [x_0_dot, x_1_dot, x_2_dot, x_3_dot, x_4_dot, x_6_dot]
+
+        x_6 = np.reshape(x_6, (-1, 2))
+
+        x_6_dot = np.dot(self._partial_f_partial_xi(self.state, u).T ,  x_6) + self._partial_f_partial_u(self.state, u)
+
+        x_6_dot = x_6_dot[:-1, :]
+
+        dFdt =  [x_0_dot, x_1_dot, x_2_dot, x_3_dot, x_4_dot, x_5_dot ]
+
+        dFdt += x_6_dot.flatten().tolist()
+
+        return dFdt
 
     def future_outputs(self, u, del_u):
         # abstract
-        # x is a vector with the sensor measurements and the current moves:
         future = self.Fu(u, del_u)
         return future
 
