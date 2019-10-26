@@ -6,18 +6,21 @@
 #include "functions.h"
 #include "constraints.h"
 */
+#include <math.h>
 
 struct NN_Predictor{
     int N1, N2, Nu;
     float ym[2];
     float yn[2];
     float lambda[3];
+    float previous_second_der;
+    float previous_first_der;
     int K; // Prediction Horizon
     int output_size;
     int input_size;
-};
-
-struct NN_Predictor create_dynamic_model(int, int, int, int, float [], float [], float []);
+} NN_P;
+ 
+void create_dynamic_model(int, int, int, int, float [], float [], float []);
 
 
 
@@ -30,7 +33,7 @@ float __partial_yn_partial_u(int, int);
 float __partial_fnet_partial_u(int, int);
 float __partial_net_partial_u(int, int);
 float __partial_delta_u_partial_u(int, int);
-float _compute_hessian(float*, float*);
+float _compute_hessian(float[], float[]);
 float _compute_jacobian(float*, float*);
 float * Fu(float*, float*);
 float * Ju(float*, float*);

@@ -106,7 +106,8 @@ void loop() {
     }
   }
 
-   u_optimal = NN_GPC(window, int N1, int N2, int Nu, int K, float ym, float yn, float lambda); // SARAH: added this line to figure out best output
+   u_optimal = NN_GPC(window, int N1, int N2, int Nu, int K, float ym, \
+                              float yn, float lambda); // SARAH: added this line to figure out best output
 }
 
 void takeData(){
