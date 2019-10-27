@@ -21,9 +21,6 @@ struct NN_Predictor{
 } NN_P;
  
 void create_dynamic_model(int, int, int, int, float [], float [], float []);
-
-
-
 float __phi_prime(float);
 float __phi_prime_prime(float);
 float __partial_2_fnet_partial_nph_partial_npm(int, int, int);
@@ -34,7 +31,7 @@ float __partial_fnet_partial_u(int, int);
 float __partial_net_partial_u(int, int);
 float __partial_delta_u_partial_u(int, int);
 float _compute_hessian(float[], float[]);
-float _compute_jacobian(float*, float*);
+float _compute_jacobian(float[], float[]);
 float [] Fu(float[], float[]);
 float [] Ju(float[], float[]);
 float compute_cost(float[], float[]);

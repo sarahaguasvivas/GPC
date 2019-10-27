@@ -12,6 +12,12 @@
  *
  */
 
+#include <math.h>
+#include "nrutil.h"
+#define TINY 1.0e-20;
+
+
+
 float * matrix_inverse(float * );
 float * newton_rasphon(float * );
 
