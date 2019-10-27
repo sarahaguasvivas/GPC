@@ -79,9 +79,9 @@ class NeuralNetworkPredictor(DynamicModel):
          ------------
         Du(n+h)Du(n+m)
         """
-        return self.__Phi_prime()*self.__partial_2_net_partial_u_nph_partial_npm(h, m,  j)\
-                        + self.__Phi_prime_prime() * self.__partial_net_partial_u(h, j) * \
-                                self.__partial_net_partial_u(m, j)
+        return self.__Phi_prime()*self.__partial_2_net_partial_u_nph_partial_npm(h, m,  j)*\
+                         + self.__Phi_prime_prime() * self.__partial_net_partial_u(h, j) * \
+                                  self.__partial_net_partial_u(m, j)
 
 
 
@@ -178,7 +178,7 @@ class NeuralNetworkPredictor(DynamicModel):
                                         (self.ym[j] - self.yn[j]))
 
                 for j in range(self.Nu):
-                    sum_output += 2*( self.lambd[j] * (self.__partial_delta_u_partial_u(j, h) * self.__partial_delta_u_partial_u(j, m) + del_u[j] )) // edited.
+                    sum_output += 2*( self.lambd[j] * (self.__partial_delta_u_partial_u(j, h) * self.__partial_delta_u_partial_u(j, m) + del_u[j] * 0.0))
 
 
                 for j in range(self.Nu):
