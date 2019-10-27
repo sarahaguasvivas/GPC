@@ -178,7 +178,7 @@ class NeuralNetworkPredictor(DynamicModel):
                                         (self.ym[j] - self.yn[j]))
 
                 for j in range(self.Nu):
-                    sum_output += 2*( self.lambd[j] * (self.__partial_delta_u_partial_u(j, h) * self.__partial_delta_u_partial_u(j, m) + del_u[j] * 0.0))
+                    sum_output += 2*( self.lambd[j] * (self.__partial_delta_u_partial_u(j, h) * self.__partial_delta_u_partial_u(j, m) + del_u[j] )) // edited.
 
 
                 for j in range(self.Nu):

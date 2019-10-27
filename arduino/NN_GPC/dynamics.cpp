@@ -1,6 +1,7 @@
 #include "dynamics.h"
 #include "neural_network.h"
 #include "functions.h"
+#include "constraints.h"
 
 
 void create_dynamic_model(int N1, int N2, int Nu, int K, float ym[], float yn[], float lambda[]){
@@ -139,21 +140,83 @@ float __partial_delta_u_partial_u(int, int){
 
         return kronecker_delta(h, j) - kronecker_delta(h, j-1);
 }
-float _compute_hessian(float[], float[]){
+float [] _compute_hessian(float[] u, float[] del_u){
 
-  float Hessian[NN_P.Nu][NN_P.Nu];
-
+  float Hessian[NN_P.Nu*NN_P.Nu];
+  float sum_output;
+  
   for (int h = 0; h<NN_P.Nu; h++){
     for (int m ; m<NN_P.Nu; m++){
-      
+        sum_output =0.0;
+
+        for (int j=NN_P.N1; i<NN_P.N2; i++){
+
+            sum_output+= 2.*(__partial_yn_partial_u(h, j)*__partial_yn_partial_u(m, j) - \
+                              __partial_2_yn_partial_nph_partial_npm(h, m, j) * \
+                                      (NN_P.ym[j] - NN_P.yn[j]));
+
+        }
+
+        for (int j=0; j<NN_P.Nu; j++){
+              sum_output+= 2.*(NN_P.lambda[j]*(__partial_delta_u_partial_u(j, h)* \
+                                  __partial_delta_u_partial_u(j, m) + del_u[j]));                              
+        }
+
+        for (int j=0; j < NN_P.Nu; j++){
+
+              sum_output += kronecker_delta(h, j)*kronecker_delta(m, j) * \
+                            (2.*constraints.s / pow(u[j] + constraints.r / 2. - \
+                                  constraints.b, 3)) + 2. * constraints.s / pow(constraints.r/2. + 
+                                            constraints.b - u[j], 3);
+        }
+
+        int idx = m * NN_P.Nu + h;
+        Hessian[idx] = sum_output;   
     }
   }
-
-  
+  return Hessian;
 }
-float _compute_jacobian(float*, float*);
-float * Fu(float*, float*);
-float * Ju(float*, float*);
-float compute_cost(float*, float*);
-float * measure(float*);
-float * predict(float*);
+
+float [] _compute_jacobian(float[] u, float[] del_u){
+    float dJ[NN_P.Nu];
+    int sum_output = 0.0;
+    for (int h=0; h<NN_P.Nu; h++){
+          sum_output=0.0;
+          for (int j=NN_P.N1; j<NN_P.N2; j++){
+              sum_output += -2.*(NN_P.ym[j] - NN_P.yn[j])*__partial_yn_partial_u(h, j);
+          }
+
+          for (int j=0; j<NN_P.Nu; j++){
+              sum_output += 2.*NN_P.lambda[j]*del_u[j]* __partial_delta_u_partial_u(j, h);
+          }
+
+          for (int j=0; j<NN_P.Nu; j++){
+              sum_output += kronecker_delta(h, j) * (-constraints.s/pow(u[j] + constraints.r/2. - constraints.b, 2) + \
+                                    constraints.s / pow(constraints.r/2. + constraints.b - u[j], 2));
+          }
+
+          dJ[h] = sum_output;
+    }
+    return dJ;
+}
+
+float [] Fu(float [] u, float [] del_u){
+    return _compute_jacobian(u, del_u);
+}
+float * Ju(float [] u, float [] del_u){
+    return _compute_hessian(u, del_u);
+}
+float compute_cost(float [] u, float [] del_u){
+      return _compute_costs(u,  del_u); // TODO;
+}
+
+float measure(){
+    // TODO;
+}
+
+float [] predict(float [] u){
+  // TODO
+      float * output; 
+      // TODO: make window have current moves.
+      output = fwdNN(window);
+}

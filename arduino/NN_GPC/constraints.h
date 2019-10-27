@@ -16,7 +16,7 @@ struct Constraints{
     
     float s, r, b;
 
-}; 
+} constraints; 
 
 
 #endif
