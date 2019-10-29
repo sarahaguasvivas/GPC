@@ -132,12 +132,12 @@ class Driver2D(DynamicModel):
         return np.array([[0, 0, np.cos(x_4), -np.sin(x_4), -x_2*np.sin(x_4) - x_3*np.cos(x_4), 0], # checked.
                 [0, 0, np.sin(x_4), np.cos(x_4), x_2*np.cos(x_4) - x_3*np.sin(x_4), 0], # checked.
                 [0, 0, 0, x_5, 0, x_3], # checked.
-                [0, 0, -x_2+2./self.mass*(np.cos(steering)*self.corn_stiff*((x_3+self.lf*x_5)/(x_2**2 + eps + (x_3+self.lf*x_5)**2)) - self.corn_stiff*((x_3-self.lr*x_5)/( eps + x_2**2 + (x_3-self.lr*x_5)**2))), 2./self.mass*(np.cos(steering)*self.corn_stiff*((-x_2**2)/(eps + x_2**2 + (x_3 + self.lr*x_5)**2)) - self.corn_stiff*(x_2**2)/(eps + x_2**2 + (x_3 -
-                    self.lr*x_5)**2)), 0, -x_2+ 2./self.mass*(np.cos(steering)*self.corn_stiff)*(-self.lf*(x_2**2)/(x_2**2 + eps + (x_3 + self.lf*x_5)**2)+ self.corn_stiff* self.lr* (x_2**2)/(eps + x_2**2 + (x_3- self.lr*x_5)**2)) ], # checked.
+                [0, 0, -x_5 + 2./self.mass*(np.cos(steering)*self.corn_stiff*((x_3+self.lr * x_5)/((x_3+self.lf*x_5)**2 + x_2**2)) + self.corn_stiff*((x_3-self.lr*x_5)/((x_3-self.lr*x_5)**2 + x_2**2))), 2./self.mass*(np.cos(steering)*self.corn_stiff*(-(x_3+self.lr*x_5)/((x_3+self.lf*x_5)**2 + x_2**2)) - self.corn_stiff*((x_3+self.lf*x_5)/((x_3+self.lf*x_5)**2 + x_2**2))), 0, -x_2+2./self.mass*(np.cos(steering)*self.corn_stiff*(-(self.lf*x_2)/(x_2**2+(x_3+self.lf*x_5)**2)) +
+                    self.corn_stiff*((self.lf*x_2)/(x_2**2 + (x_3- self.lr*x_5)**2)))],
                 [0, 0, 0, 0, 0, 1],
-                [0, 0, 2./self.yaw_inertia*(self.lf*np.cos(steering)*self.corn_stiff*((x_3+self.lf)/(eps + x_2**2 + (x_3 + self.lr*x_5)**2) + self.lr*self.corn_stiff*(x_3-self.lr*x_5)/(eps + x_2**2 + (x_3-self.lr*x_5)**2))), 2./self.yaw_inertia*(self.lf*np.cos(steering)*self.corn_stiff*(-x_2**2)/(eps + x_2**2 + (x_3 + self.lf * x_5)**2) + self.lr*self.corn_stiff*(x_2**2)/(eps + x_2**2 + (x_3-self.lr*x_5)**2)), 0,
-                    2./self.yaw_inertia*(self.lf*np.cos(steering)*self.corn_stiff*(-self.lf*(x_2**2)/(eps + x_2**2 +
-                    (x_3 + self.lf*x_5)**2)) - self.lr**2*self.corn_stiff * (x_2**2)/(eps + x_2**2 + (x_3- self.lr*x_5)**2))]])
+                [0, 0, 2./self.yaw_inertia*(self.lf*np.cos(steering)*self.corn_stiff*((x_3+self.lf*x_5)/(eps + x_2**2 + (x_3 + self.lf*x_5)**2) - self.lr*self.corn_stiff*(x_3-self.lr*x_5)/(eps + x_2**2 + (x_3-self.lr*x_5)**2))), 2./self.yaw_inertia*(self.lf*np.cos(steering)*self.corn_stiff*(-x_2)/(eps + x_2**2 + (x_3 + self.lf * x_5)**2) + self.lr*self.corn_stiff*(x_2)/(eps + x_2**2 + (x_3-self.lr*x_5)**2)), 0,
+                    2./self.yaw_inertia*(self.lf*np.cos(steering)*self.corn_stiff*(-self.lf*(x_2)/(eps + x_2**2 +
+                    (x_3 + self.lf*x_5)**2)) - self.lr**2*self.corn_stiff * (x_2)/(eps + x_2**2 + (x_3- self.lr*x_5)**2))]])
 
     def _partial_f_partial_u(self, state, u):
         acceleration, steering = u
@@ -146,9 +146,9 @@ class Driver2D(DynamicModel):
         return np.array([[0, 0],
                         [0, 0],
                         [1, 0],
-                        [0, -2./self.mass*( -np.sin(steering) *self.corn_stiff*(steering) - np.arctan((x_3+self.lf*x_5)/(x_2 + eps)) + np.cos(steering)*self.corn_stiff)],
+                        [0, 2./self.mass*( -np.sin(steering) *self.corn_stiff*(steering) - np.arctan((x_3+self.lf*x_5)/(x_2 + eps)) + np.cos(steering)*self.corn_stiff)],
                         [0, 0],
-                        [0, -2./self.yaw_inertia * ( -self.lf*np.sin(steering)*self.corn_stiff*(steering - np.arctan((x_3+self.lr*x_5)/(x_2 + eps)))  + self.lf*np.cos(steering) * self.corn_stiff ) ]])
+                        [0, 2./self.yaw_inertia * ( -self.lf*np.sin(steering)*self.corn_stiff*(steering - np.arctan((x_3+self.lf*x_5)/(x_2 + eps)))  + self.lf*np.cos(steering) * self.corn_stiff ) ]])
 
     def __integrator(self, state, t, u, del_u):
         """

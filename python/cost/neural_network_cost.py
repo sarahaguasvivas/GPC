@@ -40,6 +40,14 @@ class NN_Cost(Cost):
         self.yn = self.d_model.yn
 
         # FIXME : this is supposed to be from N1 to N2
+        self.cost+= (self.ym[0] - self.yn[0])
+        angle_diff = (self.ym[1] - self.yn[1])
+        if angle_diff > np.pi:
+            angle_diff -= 2*np.pi
+        if angle_diff < -np.pi:
+            angle_diff += 2*np.pi
+        self.cost += angle_diff
+
         for j in range(self.Nu):
             self.cost += (self.ym[j] - self.yn[j])**2
 
@@ -47,7 +55,7 @@ class NN_Cost(Cost):
             self.cost += self.lambd[j]*(del_u[j])**2
 
         for j in range(self.Nu):
-            self.cost += self.s/(u[j] + self.r / 2.0 - self.b) + self.s / (self.r/2.0 + self.b - u[j]) - 4.0 / self.r
+            self.cost += self.s / (u[j] + self.r / 2.0 - self.b) + self.s / (self.r/2.0 + self.b - u[j]) - 4.0 / self.r
 
         return self.cost
 

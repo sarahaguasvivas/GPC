@@ -28,7 +28,7 @@ class NewtonRaphson(Optimizer):
         for i in range(maxit):
 
             Ju = self.d_model.Ju(u, du)
-
+            print(Ju)
             du = -np.linalg.solve(Ju, Fu)
 
             u += du

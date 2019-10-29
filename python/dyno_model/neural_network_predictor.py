@@ -173,12 +173,12 @@ class NeuralNetworkPredictor(DynamicModel):
                 sum_output=0.0
 
                 for j in range(self.N1, self.N2):
-                    sum_output += 2*(self.__partial_yn_partial_u(h, j)*self.__partial_yn_partial_u(m, j) - \
+                    sum_output += 2.*(self.__partial_yn_partial_u(h, j)*self.__partial_yn_partial_u(m, j) - \
                                         self.__partial_2_yn_partial_nph_partial_npm(h, m, j)* \
                                         (self.ym[j] - self.yn[j]))
 
                 for j in range(self.Nu):
-                    sum_output += 2*( self.lambd[j] * (self.__partial_delta_u_partial_u(j, h) * self.__partial_delta_u_partial_u(j, m) + del_u[j] * 0.0))
+                    sum_output += 2.*( self.lambd[j] * (self.__partial_delta_u_partial_u(j, h) * self.__partial_delta_u_partial_u(j, m) + del_u[j] * 0.0))
 
 
                 for j in range(self.Nu):
@@ -197,10 +197,10 @@ class NeuralNetworkPredictor(DynamicModel):
         for h in range(self.Nu):
             sum_output=0.0
             for j in range(self.N1, self.N2):
-                sum_output+=-2*(self.ym[j]-self.yn[j])*self.__partial_yn_partial_u(h, j)
+                sum_output+=-2.*(self.ym[j]-self.yn[j])*self.__partial_yn_partial_u(h, j)
 
             for j in range(self.Nu):
-                sum_output+=2*self.lambd[j]*del_u[j]*self.__partial_delta_u_partial_u(j, h)
+                sum_output+=2.*self.lambd[j]*del_u[j]*self.__partial_delta_u_partial_u(j, h)
 
             for j in range(self.Nu):
                 sum_output+=kronecker_delta(h, j) * ( -self.constraints.s/(u[j] + self.constraints.r/2. - self.constraints.b)**2  + \
