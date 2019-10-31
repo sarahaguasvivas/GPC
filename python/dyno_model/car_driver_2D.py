@@ -9,15 +9,13 @@ from scipy.integrate import odeint
 class Driver2D(DynamicModel):
     def __init__(self, N1 : int, \
                         N2 : int, Nu : int, ym : list, K : int, \
-                        yn : list, lambd : list, alpha : float):
+                        yn : list, alpha : float):
         self.N1 = N1
         self.N2 = N2
         self.alpha = alpha
 
         self.Nu = Nu
         self.ym = ym
-
-        self.lambd = lambd # might not need it
 
         self.state = [0., 0., 0., 0., 0., np.array([0, 0])]
         self.yn = yn

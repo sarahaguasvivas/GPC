@@ -5,16 +5,16 @@ import matplotlib.pyplot as plt
 
 # ym is target x and y
 
-D2D = Driver2D(N1 = 0, N2= 5, Nu = 2, ym = [2.5, 2.5], K = 0.5, yn = [1.]*2, lambd = [1., 1.], alpha = 30.) # alpha is the speedup coefficient
+D2D = Driver2D(N1 = 0, N2= 2, Nu = 2, ym = [1.5, 1.5], K = 0.5, yn = [0.]*2, alpha = 30.) # alpha is the speedup coefficient
 
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
-new_state_new = np.random.multivariate_normal([0.0]*18, .5*np.eye(18), 1).flatten().tolist() # nonzero x_2 to avoid nan in first calculation of Fcr and Fcf
+new_state_new = np.random.multivariate_normal([0.05]*18, 0.05*np.eye(18), 1).flatten().tolist() # nonzero x_2 to avoid nan in first calculation of Fcr and Fcf
 
 start= [new_state_new[0], new_state_new[1]]
 
-del_u = [0.000]*2
-u = [20., 0.00]
+del_u = [0.0001]*2
+u = [20., 0.000]
 
 sim_step = 0.0025
 
@@ -23,7 +23,7 @@ R = 200.
 XY = [new_state_new[:2]]
 Targ = []
 
-for n in range(100):
+for n in range(1000):
 
 #    D2D.ym[0] = R * np.cos(n/10)
 #    D2D.ym[1] = R * np.sin(n/10)
@@ -39,14 +39,25 @@ for n in range(100):
     D2D.yn = future_outputs
 
     u_optimal = np.reshape(D2D_opt.optimize(u = u, del_u = del_u, rtol = 1e-8, maxit = 8, verbose= False)[0], (-1, 1))
-    print("u_optimal :", u_optimal)
+
+    accl= u_optimal[0]
+
+    if (accl>0):
+        u_optimal[0] = min(30.0, u_optimal[0])
+    if (accl<0):
+        u_optimal[0] = max(0.0, u_optimal[0])
+
+    u_optimal[1] %= (np.pi / 4.0) # making the inputs more realistic
+
+    #print("u_optimal: ", u_optimal)
+
     del_u = u - np.array(u_optimal.flatten())
 
     del_u = del_u.flatten().tolist()
 
     u_optimal = np.array(u_optimal).flatten().tolist()
 
-    new_state_new = D2D.predict(u = u_optimal, del_u = [0.0,0.0], T = sim_step)
+    new_state_new = D2D.predict(u = u_optimal, del_u = del_u, T = sim_step)
 
     D2D.yn = new_state_new[:2]
 
