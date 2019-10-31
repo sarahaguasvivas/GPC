@@ -5,21 +5,24 @@ import matplotlib.pyplot as plt
 
 # ym is target x and y
 
-D2D = Driver2D(N1 = 0, N2= 2, Nu = 2, ym = [1.5, 1.5], K = 0.5, yn = [0.]*2, alpha = 30.) # alpha is the speedup coefficient
+D2D = Driver2D(N1 = 0, N2= 2, Nu = 2, ym = [1.5, 1.5], K = 0.5, yn = [200., 0.], alpha = 30.) # alpha is the speedup coefficient
 
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
 new_state_new = np.random.multivariate_normal([0.05]*18, 0.05*np.eye(18), 1).flatten().tolist() # nonzero x_2 to avoid nan in first calculation of Fcr and Fcf
 
 del_u = [0.0001]*2
-u = [20., 0.000]
+u = [20., 0.0]
 
 sim_step = 0.1
 
 R = 200.
 
-new_state_new[0] = R
-new_state_new[1] = 0
+new_state_new[0] = R * np.cos(-np.pi/2.0)
+new_state_new[1] = R * np.sin(-np.pi/2.0)
+
+D2D.yn = new_state_new[:2]
+
 start= [new_state_new[0], new_state_new[1]]
 
 XY = [new_state_new[:2]]
@@ -27,8 +30,10 @@ Targ = []
 
 for n in range(1000):
 
-    D2D.ym[0] = R * np.cos(n)
-    D2D.ym[1] = R * np.sin(n)
+    D2D.ym[0] = R * np.cos(n/100 - np.pi/2.0)
+    D2D.ym[1] = R * np.sin(n/100 - np.pi/2.0)
+
+    Targ += [D2D.ym][0]
 
     new_state_old = new_state_new
 
@@ -49,9 +54,14 @@ for n in range(1000):
     if (accl<0):
         u_optimal[0] = max(0.0, u_optimal[0])
 
-    u_optimal[1] %= (np.pi / 4.0) # making the inputs more realistic
+    #if u_optimal[1] > 0:
+    #    u_optimal[1] = min(np.pi/4.0, u_optimal[1]) # making the inputs more realistic
+    #if u_optimal[1] < 0:
+    #    u_optimal[1] = max(-np.pi/4.0, u_optimal[1])
 
-    #print("u_optimal: ", u_optimal)
+    u_optimal[1] %= (np.pi/4.0)
+
+    print("u_optimal : ", u_optimal.flatten().tolist())
 
     del_u = u - np.array(u_optimal.flatten())
 
@@ -63,15 +73,14 @@ for n in range(1000):
 
     D2D.yn = new_state_new[:2]
 
-    if (abs(D2D.Cost.cost) < 1.):
-        break
+    #if (abs(D2D.Cost.cost) < 1.):
+    #    break
 
     u = u_optimal
 
     D2D.state = np.array(new_state_new).flatten()
 
     XY += [D2D.yn]
-    Targ += [D2D.ym]
 
 XY = np.reshape(XY, (-1, 2))
 Targ = np.reshape(Targ, (-1, 2))
@@ -79,7 +88,7 @@ Targ = np.reshape(Targ, (-1, 2))
 labels = ["X", "Y"]
 
 #verts = np.array([[-1, -1], [1, -1], [1, 1], [-1, -1]])
-plt.plot(XY[:, 0], XY[:, 1], 'ok')
+plt.plot(XY[:, 0], XY[:, 1], '--k')
 plt.scatter(Targ[:, 0], Targ[:, 1], c= 'r', marker = (5,2))
 plt.scatter(start[0], start[1], c='b', marker = (5, 2))
 plt.title("Position in XY Coordinates")

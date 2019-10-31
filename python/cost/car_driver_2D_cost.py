@@ -28,6 +28,7 @@ class Driver2DCost(Cost):
         """
 
         self.cost= np.linalg.norm(self.d_model.ym - np.array(self.d_model.yn))
+        print(self.d_model.ym, self.d_model.yn)
         print("Cost: ",  self.cost)
         return self.cost
 
