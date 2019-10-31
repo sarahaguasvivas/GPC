@@ -3,6 +3,8 @@ from dyno_model.car_driver_2D import *
 from optimizer.newton_raphson import *
 import matplotlib.pyplot as plt
 
+MAX_ACCEL= 40.
+MAX_STEERING = np.pi/4.0
 # ym is target x and y
 
 D2D = Driver2D(N1 = 0, N2= 2, Nu = 2, ym = [1.5, 1.5], K = 0.5, yn = [200., 0.], alpha = 30.) # alpha is the speedup coefficient
@@ -28,7 +30,7 @@ start= [new_state_new[0], new_state_new[1]]
 XY = [new_state_new[:2]]
 Targ = []
 
-for n in range(1000):
+for n in range(500):
 
     D2D.ym[0] = R * np.cos(n/100 - np.pi/2.0)
     D2D.ym[1] = R * np.sin(n/100 - np.pi/2.0)
@@ -50,16 +52,14 @@ for n in range(1000):
     accl= u_optimal[0]
 
     if (accl>0):
-        u_optimal[0] = min(30.0, u_optimal[0])
+        u_optimal[0] = min(MAX_ACCEL, u_optimal[0])
     if (accl<0):
         u_optimal[0] = max(0.0, u_optimal[0])
 
-    #if u_optimal[1] > 0:
-    #    u_optimal[1] = min(np.pi/4.0, u_optimal[1]) # making the inputs more realistic
-    #if u_optimal[1] < 0:
-    #    u_optimal[1] = max(-np.pi/4.0, u_optimal[1])
-
-    u_optimal[1] %= (np.pi/4.0)
+    if u_optimal[1] > 0:
+        u_optimal[1] = min(MAX_STEERING, u_optimal[1]) # making the inputs more realistic
+    if u_optimal[1] < 0:
+        u_optimal[1] = max(-MAX_STEERING, u_optimal[1])
 
     print("u_optimal : ", u_optimal.flatten().tolist())
 
@@ -73,9 +73,6 @@ for n in range(1000):
 
     D2D.yn = new_state_new[:2]
 
-    #if (abs(D2D.Cost.cost) < 1.):
-    #    break
-
     u = u_optimal
 
     D2D.state = np.array(new_state_new).flatten()
@@ -88,9 +85,9 @@ Targ = np.reshape(Targ, (-1, 2))
 labels = ["X", "Y"]
 
 #verts = np.array([[-1, -1], [1, -1], [1, 1], [-1, -1]])
-plt.plot(XY[:, 0], XY[:, 1], '--k')
-plt.scatter(Targ[:, 0], Targ[:, 1], c= 'r', marker = (5,2))
-plt.scatter(start[0], start[1], c='b', marker = (5, 2))
+plt.plot(XY[:, 0], XY[:, 1], '--k', label = 'position')
+plt.scatter(Targ[:, 0], Targ[:, 1], c= 'r', marker = (5,2), label = 'target')
+plt.scatter(start[0], start[1], c='b', marker = (5, 2), label = 'start')
 plt.title("Position in XY Coordinates")
 plt.xlabel("X [m]")
 plt.ylabel("Y [m]")
