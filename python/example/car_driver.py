@@ -11,22 +11,24 @@ D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
 new_state_new = np.random.multivariate_normal([0.05]*18, 0.05*np.eye(18), 1).flatten().tolist() # nonzero x_2 to avoid nan in first calculation of Fcr and Fcf
 
-start= [new_state_new[0], new_state_new[1]]
-
 del_u = [0.0001]*2
 u = [20., 0.000]
 
-sim_step = 0.0025
+sim_step = 0.1
 
 R = 200.
+
+new_state_new[0] = R
+new_state_new[1] = 0
+start= [new_state_new[0], new_state_new[1]]
 
 XY = [new_state_new[:2]]
 Targ = []
 
 for n in range(1000):
 
-#    D2D.ym[0] = R * np.cos(n/10)
-#    D2D.ym[1] = R * np.sin(n/10)
+    D2D.ym[0] = R * np.cos(n)
+    D2D.ym[1] = R * np.sin(n)
 
     new_state_old = new_state_new
 
@@ -61,7 +63,7 @@ for n in range(1000):
 
     D2D.yn = new_state_new[:2]
 
-    if (abs(D2D.Cost.cost) < 0.02):
+    if (abs(D2D.Cost.cost) < 1.):
         break
 
     u = u_optimal
@@ -77,7 +79,7 @@ Targ = np.reshape(Targ, (-1, 2))
 labels = ["X", "Y"]
 
 #verts = np.array([[-1, -1], [1, -1], [1, 1], [-1, -1]])
-plt.plot(XY[:, 0], XY[:, 1], '--k')
+plt.plot(XY[:, 0], XY[:, 1], 'ok')
 plt.scatter(Targ[:, 0], Targ[:, 1], c= 'r', marker = (5,2))
 plt.scatter(start[0], start[1], c='b', marker = (5, 2))
 plt.title("Position in XY Coordinates")
