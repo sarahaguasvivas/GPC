@@ -3,22 +3,20 @@ from dyno_model.car_driver_2D import *
 from optimizer.newton_raphson import *
 import matplotlib.pyplot as plt
 
-MAX_ACCEL= 40.
+MAX_ACCEL= 10.
 MAX_STEERING = np.pi/4.0
-# ym is target x and y
+R = 200.
 
-D2D = Driver2D(N1 = 0, N2= 2, Nu = 2, ym = [1.5, 1.5], K = 0.5, yn = [200., 0.], alpha = 30.) # alpha is the speedup coefficient
+D2D = Driver2D(N1 = 0, N2= 2, Nu = 2, ym = [1.5, 1.5], K = 0.5, yn = [R*np.cos(-np.pi/2.0), R*np.sin(-np.pi/2.0)], alpha = 30.) # alpha is the speedup coefficient
 
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
 new_state_new = np.random.multivariate_normal([0.05]*18, 0.05*np.eye(18), 1).flatten().tolist() # nonzero x_2 to avoid nan in first calculation of Fcr and Fcf
 
 del_u = [0.0001]*2
-u = [20., 0.0]
+u = [10., 0.0]
 
-sim_step = 0.1
-
-R = 200.
+sim_step = 0.025
 
 new_state_new[0] = R * np.cos(-np.pi/2.0)
 new_state_new[1] = R * np.sin(-np.pi/2.0)
@@ -30,7 +28,7 @@ start= [new_state_new[0], new_state_new[1]]
 XY = [new_state_new[:2]]
 Targ = []
 
-for n in range(500):
+for n in range(10):
 
     D2D.ym[0] = R * np.cos(n/100 - np.pi/2.0)
     D2D.ym[1] = R * np.sin(n/100 - np.pi/2.0)
@@ -57,9 +55,9 @@ for n in range(500):
         u_optimal[0] = max(0.0, u_optimal[0])
 
     if u_optimal[1] > 0:
-        u_optimal[1] = min(MAX_STEERING, u_optimal[1]) # making the inputs more realistic
+        u_optimal[1] = min(MAX_STEERING, u_optimal[1]) - np.pi/2.0 # making the inputs more realistic
     if u_optimal[1] < 0:
-        u_optimal[1] = max(-MAX_STEERING, u_optimal[1])
+        u_optimal[1] = max(-MAX_STEERING, u_optimal[1]) + np.pi/2.0
 
     print("u_optimal : ", u_optimal.flatten().tolist())
 
