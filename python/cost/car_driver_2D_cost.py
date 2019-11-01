@@ -26,9 +26,19 @@ class Driver2DCost(Cost):
         previous control inputs
         n is an int that represents the current discrete timestep
         """
+        self.ym = self.d_model.ym
+        self.yn = self.d_model.yn
 
-        self.cost= np.linalg.norm(self.d_model.ym - np.array(self.d_model.yn))
-        print(self.d_model.ym, self.d_model.yn)
+        #for j in range(2):
+        #    self.cost += (self.ym[j] - self.yn[j])**2
+
+        #for j in range(2):
+        #    self.cost += del_u[j]**2
+
+        #for j in range(2):
+        #    self.cost += self.s / (u[j] + self.r / 2.0 - self.b) + self.s / (self.r/2.0 + self.b - u[j]) - 4.0 / self.r
+
+        self.cost= np.linalg.norm(np.array(self.d_model.ym) - np.array(self.d_model.yn))
         print("Cost: ",  self.cost)
         return self.cost
 

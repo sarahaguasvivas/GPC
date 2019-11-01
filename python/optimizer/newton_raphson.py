@@ -12,7 +12,7 @@ class NewtonRaphson(Optimizer):
 
     def __fsolve_newton(self, u0, del_u, rtol=1e-8, maxit=10, verbose=False):
         """
-        Jed Brown's algebraic solver
+        From Jed Brown's algebraic solver
 
         """
         u = u0.copy()
@@ -26,27 +26,23 @@ class NewtonRaphson(Optimizer):
         enorm_last = np.linalg.norm(u - np.array([1]*len(u)))
 
         for i in range(maxit):
-            try:
-                Ju = self.d_model.Ju(u, du)
+            Ju = self.d_model.Ju(u, du)
 
-                du = -np.linalg.solve(Ju, Fu)
+            du = -np.linalg.solve(Ju, Fu)
 
-                u += du
+            u += du
 
-                Fu = self.d_model.Fu(u, du)
+            Fu = self.d_model.Fu(u, du)
 
-                norm = np.linalg.norm(Fu)
+            norm = np.linalg.norm(Fu)
 
-                if verbose:
-                    enorm = np.linalg.norm(u - np.array([1]*len(u)))
-                    print('Newton {:d} anorm {:6.2e} rnorm {:6.2e} eratio {:6.2f}'.
-                          format(i+1, norm, norm/norm0, enorm/enorm_last**2))
-                    enorm_last = enorm
-                if norm < rtol * norm0:
-                    break
-            except:
-                u = [0.0, 0.0]
-                du = [0.0, 0.0]
+            if verbose:
+                enorm = np.linalg.norm(u - np.array([1]*len(u)))
+                print('Newton {:d} anorm {:6.2e} rnorm {:6.2e} eratio {:6.2f}'.
+                      format(i+1, norm, norm/norm0, enorm/enorm_last**2))
+                enorm_last = enorm
+            if norm < rtol * norm0:
+                break
         return u, i, du
 
     def optimize(self, u = [0, 0], del_u=[0,0], rtol=1e-8, maxit = 8, verbose=False):

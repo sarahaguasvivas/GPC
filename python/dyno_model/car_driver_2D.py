@@ -7,23 +7,20 @@ import math
 from scipy.integrate import odeint
 
 class Driver2D(DynamicModel):
-    def __init__(self, N1 : int, \
-                        N2 : int, Nu : int, ym : list, K : int, \
+    def __init__(self, ym : list, K : int, \
                         yn : list, alpha : float):
-        self.N1 = N1
-        self.N2 = N2
         self.alpha = alpha
 
-        self.Nu = Nu
         self.ym = ym
 
-        self.state = [0., 0., 0., 0., 0., np.array([0, 0])]
+        self.state = None
         self.yn = yn
         self.K = K
 
-        self.constraints = Constraints(s = 1e-10, r = 1, b = 1)
+        self.constraints = Constraints(s = 1., r = 1., b = 1.)
 
         self.collided: bool = False
+
         self.length: float = 4.9  # a typical car length (Toyota Camry)
         self.width: float = 1.83  # a typical car width (Toyota Camry)
         self.mass: float = 1587  # Toyota Camry gross mass (kg)
@@ -40,7 +37,6 @@ class Driver2D(DynamicModel):
         self.road_friction_coefficient: float = .9  # .9 (dry road), .6 (wet road), .2 (snow), .05 (ice)
 
         self.slip_coefficient = 1.0
-
         self.max_speed = 200  # TODO: make configurable
 
         super().__init__()
@@ -68,11 +64,10 @@ class Driver2D(DynamicModel):
 
         """
         C = np.zeros((2, 6)) # partial h(eps)/partial eps * partial eps / partial u
-
-        self.__update_cornering_forces(self.state, u)
-
         C[0, 0] = 1
         C[1, 1] = 1
+
+        self.__update_cornering_forces(self.state, u)
 
         x_6 = np.reshape(self.state[6:], (-1, 2))
         return np.dot(C, x_6)
@@ -82,17 +77,11 @@ class Driver2D(DynamicModel):
 
     def Fu(self, u, del_u):
         future_state = self.predict(u, del_u, self.K).tolist()
-        r = self.ym
-
-        fu = np.array(r) - np.array(future_state[:2])
-        return fu
-
-    def __dampen(self, val, lim, coef):
-        damped = val*coef
-        if np.abs(damped) < lim:
-            return 0.0
-        else:
-            return damped
+        fu = [0.0, 0.0]
+        fu[0] = self.ym[0] - self.yn[0]
+        temp = self.ym[1] - self.yn[1]
+        fu[1] = (temp + np.pi) % (2.*np.pi) - np.pi
+        return np.array(fu)
 
     def predict(self, u, del_u, T):
         """
@@ -109,12 +98,10 @@ class Driver2D(DynamicModel):
             u[0] : acceleration
             u[1] : steering
         """
-
         old_state = self.state
         steps = np.arange(0.0, T, T / 10.0) # We're predicting after T steps
         delta_ode_state = odeint(self.__integrator, old_state, steps, args= (u,del_u))
-        state = delta_ode_state[-1]
-        return state
+        return delta_ode_state[-1]
 
     def compute_cost(self, u, del_u):
         return self.Cost.compute_cost(u, del_u)
@@ -123,8 +110,8 @@ class Driver2D(DynamicModel):
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state[:6]
         eps = 1e-8
-        self.Fcf = self.corn_stiff * (steering - np.arctan((x_3 + self.lf*x_5) / (x_2+eps )))
-        self.Fcr = - self.corn_stiff * np.arctan((x_3- self.lr*x_5) / (x_2 + eps))
+        self.Fcf = self.corn_stiff * (steering - np.arctan((x_3 + self.lf*x_5) / (x_2 + eps)))
+        self.Fcr = - self.corn_stiff * np.arctan((x_3 - self.lr*x_5) / (x_2 + eps))
 
     def _partial_f_partial_xi(self, state, u):
         acceleration, steering = u
@@ -192,7 +179,7 @@ class Driver2D(DynamicModel):
         x_6 = state[6:]
 
         self.__update_cornering_forces(state, u)
-        x_3 = max(0, x_3)
+        #x_3 = max(0, x_3)
         x_0_dot = x_2*np.cos(x_4) - x_3*np.sin(x_4)
         x_1_dot = x_2*np.sin(x_4) + x_3*np.cos(x_4)
         x_2_dot = x_5*x_3 + acceleration
@@ -201,16 +188,14 @@ class Driver2D(DynamicModel):
         x_5_dot = 2./self.yaw_inertia * (self.lf * self.Fcf * np.cos(steering_angle) - self.lr*self.Fcr)
 
         x_6 = np.reshape(x_6, (-1, 2))
-
         x_6_dot = np.dot(self._partial_f_partial_xi(self.state, u) ,  x_6) + self._partial_f_partial_u(self.state, u)
 
         dFdt =  [x_0_dot, x_1_dot, x_2_dot, x_3_dot, x_4_dot, x_5_dot]
-
         dFdt += x_6_dot.flatten().tolist()
 
         return dFdt
 
     def future_outputs(self, u, del_u):
-        future = self.Fu(u, del_u)
-        return future
+        future_state = self.predict(u, del_u, self.K).tolist()
+        return future_state[:2]
 
