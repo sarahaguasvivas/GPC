@@ -110,6 +110,7 @@ class Driver2D(DynamicModel):
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state[:6]
         eps = 1e-8
+
         self.Fcf = self.corn_stiff * (steering - np.arctan((x_3 + self.lf*x_5) / (x_2 + eps)))
         self.Fcr = - self.corn_stiff * np.arctan((x_3 - self.lr*x_5) / (x_2 + eps))
 
@@ -150,11 +151,11 @@ class Driver2D(DynamicModel):
         return np.array([[0, 0],
                         [0, 0],
                         [1, 0],
-                        [0, 2./self.mass*(-np.sin(steering) *self.corn_stiff*(steering - \
+                        [0,  -2./self.mass*(-np.sin(steering) *self.corn_stiff*(steering - \
                                                 np.arctan((x_3+self.lf*x_5)/(x_2 + eps))) + \
                                                         np.cos(steering)*self.corn_stiff)],
                         [0, 0],
-                        [0, 2./self.yaw_inertia * (-self.lf*np.sin(steering)*self.corn_stiff*(steering - \
+                        [0,  -2./self.yaw_inertia * (-self.lf*np.sin(steering)*self.corn_stiff*(steering - \
                                                     np.arctan((x_3+self.lf*x_5)/(x_2 + eps)))  + \
                                                         self.lf*np.cos(steering) * self.corn_stiff ) ]])
 

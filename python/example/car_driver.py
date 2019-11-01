@@ -26,7 +26,7 @@ start= state_new[:2]
 XY = [D2D.state[:2]]
 targ = []
 
-for n in range(100):
+for n in range(10):
 
     D2D.ym[0] =  R                                      # R * np.cos(n/1000 - np.pi/2.0)
     D2D.ym[1] =  0.0                                    # R * np.sin(n/1000 - np.pi/2.0)
@@ -37,15 +37,14 @@ for n in range(100):
     D2D.state = np.array(state_new).flatten()
 
     u_optimal = np.reshape(D2D_opt.optimize(u = [0.0, 0.0], del_u = [0.0, 0.0], rtol = 1e-8, \
-                            maxit = MAX_NR_IT, verbose= False)[0], (-1, 1))
-
+                            maxit = MAX_NR_IT, verbose= True)[0], (-1, 1))
 
     u_optimal[0] = np.clip(u_optimal[0], 0, 40)
     u_optimal[1] = np.clip(u_optimal[1], -np.pi/4.0, np.pi/4.0)
 
     print("u_optimal : ", u_optimal.flatten().tolist())
 
-    del_u = u_optimal_old -  np.array(u_optimal.flatten())
+    del_u = u_optimal_old - np.array(u_optimal.flatten())
 
     u_optimal = np.array(u_optimal).flatten().tolist()
 
