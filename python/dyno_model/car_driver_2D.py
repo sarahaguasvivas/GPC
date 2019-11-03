@@ -69,9 +69,6 @@ class Driver2D(DynamicModel):
         C = np.zeros((2, 6)) # partial h(eps)/partial eps * partial eps / partial u
         C[0, 0] = 1
         C[1, 1] = 1
-
-        self.__update_cornering_forces(self.state, u)
-
         return np.dot(C, self.par_eps_par_u)
 
     def Ju(self, u, del_u):
@@ -80,10 +77,7 @@ class Driver2D(DynamicModel):
     def Fu(self, u, del_u):
         future_state, _ = self.predict(u, del_u, self.K)
         future_state = future_state.tolist()
-        fu = [0.0, 0.0]
-        fu[0] = self.ym[0] - future_state[0]
-        temp = self.ym[1] - future_state[1]
-        fu[1] = (temp + np.pi) % (2.*np.pi) - np.pi
+        fu = np.array(self.ym) - np.array(future_state[:2])
         return np.array(fu)
 
     def predict(self, u, del_u, T):
@@ -102,10 +96,18 @@ class Driver2D(DynamicModel):
             u[1] : steering
         """
         old_state = copy.copy(self.state)
-        steps = np.arange(0.0, T, T / 10.0) # We're predicting after T steps
+
+        steps = np.arange(0.0, T, T / 10.) # We're predicting after T steps
+
         delta_ode_state = odeint(self.__integrator, old_state, steps, args= (u,del_u))
-        delta_ode_parepsparu = odeint(self.__integrator_2, self.par_eps_par_u.flatten(), steps, args=(u, del_u, delta_ode_state[-1]))
-        return delta_ode_state[-1], np.reshape(delta_ode_parepsparu[-1], (-1, 2))
+
+        self.__update_cornering_forces(delta_ode_state[-1], u)
+
+        # Forward Euler:
+        delta_ode_pareparu = self.par_eps_par_u + T*(np.dot(self._partial_f_partial_xi(delta_ode_state[-1], u) ,\
+                                    self.par_eps_par_u) + self._partial_f_partial_u(delta_ode_state[-1], u))
+
+        return np.array(delta_ode_state[-1]).flatten(), delta_ode_pareparu
 
     def compute_cost(self, u, del_u):
         return self.Cost.compute_cost(u, del_u)
@@ -121,20 +123,14 @@ class Driver2D(DynamicModel):
     def _partial_f_partial_xi(self, state, u):
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state
-        eps = 1e-8
-        """
-            [ 0, 0, cos(x4),  -sin(x4), - x3*cos(x4) - x2*sin(x4),0]
-            [ 0, 0, sin(x4),  cos(x4),   x2*cos(x4) - x3*sin(x4),0]
-            [ 0, 0, 0, x5, 0, x3]
-            [ 0, 0, (2*((C*(x3 - lr*x5))/(x2^2*((x3 - lr*x5)^2/x2^2 + 1)) + (C*cos(u1)*(x3 + lf*x5))/(x2^2*((x3 + lf*x5)^2/x2^2 + 1))))/m - x5, -(2*(C/(x2*((x3 - lr*x5)^2/x2^2 + 1)) + (C*cos(u1))/(x2*((x3 + lf*x5)^2/x2^2 + 1))))/m, 0,   (2*((C*lr)/(x2*((x3 - lr*x5)^2/x2^2 + 1)) - (C*lf*cos(u1))/(x2*((x3 + lf*x5)^2/x2^2 + 1))))/m - x2]
-            [ 0, 0, 0,  0,   0,    1]
-            [ 0, 0, -(2*((C*lr*(x3 - lr*x5))/(x2^2*((x3 - lr*x5)^2/x2^2 + 1)) - (C*lf*cos(u1)*(x3 + lr*x5))/(x2^2*((x3 + lr*x5)^2/x2^2 + 1))))/Iz, (2*((C*lr)/(x2*((x3 - lr*x5)^2/x2^2 + 1)) - (C*lf*cos(u1))/(x2*((x3 + lr*x5)^2/x2^2 + 1))))/Iz, 0, -(2*((C*lr^2)/(x2*((x3 - lr*x5)^2/x2^2 + 1)) + (C*lf*lr*cos(u1))/(x2*((x3 + lr*x5)^2/x2^2 + 1))))/Iz]
 
-        """
+        eps = 1e-8
+
         if x_2 == 0:
             x_2+= eps
         if x_5 == 0:
             x_5 +=eps
+
         return np.array([[0, 0, np.cos(x_4), -np.sin(x_4), -x_3*np.cos(x_4) - x_2*np.sin(x_4), 0],
                 [0, 0, np.sin(x_4), np.cos(x_4), x_2*np.cos(x_4) - x_3*np.sin(x_4), 0],
                 [0, 0, 0, x_5, 0, x_3],
@@ -158,14 +154,6 @@ class Driver2D(DynamicModel):
                                         self.lr*x_5)**2/(x_2+eps)**2 + 1))))/self.yaw_inertia]])
 
     def _partial_f_partial_u(self, state, u):
-        """
-            [ 0,                                                                 0]
-            [ 0,                                                                 0]
-            [ 1,                                                                 0]
-            [ 0,        (2*(C*cos(u1) - C*sin(u1)*(u1 - atan((x3 + lf*x5)/x2))))/m]
-            [ 0,                                                                 0]
-            [ 0, (2*(C*lf*cos(u1) - C*lf*sin(u1)*(u1 - atan((x3 + lr*x5)/x2))))/Iz]
-        """
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state
         eps= 1e-8
@@ -188,7 +176,6 @@ class Driver2D(DynamicModel):
         self.__update_cornering_forces(state, u)
         par_eps_par_u = np.reshape(par_eps_par_u, (-1, 2))
         x_6_dot = np.dot(self._partial_f_partial_xi(state, u) ,  par_eps_par_u) + self._partial_f_partial_u(state, u)
-
         return x_6_dot.flatten()
 
     def __integrator(self, state, t, u, del_u):
@@ -209,18 +196,18 @@ class Driver2D(DynamicModel):
         acceleration, steering_angle = u
 
         x_0, x_1, x_2, x_3, x_4, x_5 = state
+        eps= 1e-8
 
-        self.__update_cornering_forces(state, u)
-        x_2 = max(0, x_2)
+        self.Fcf = self.corn_stiff * (steering_angle - np.arctan((x_3 + self.lf*x_5) / (x_2 + eps)))
+        self.Fcr = - self.corn_stiff * np.arctan((x_3 - self.lr*x_5) / (x_2 + eps))
+
         x_0_dot = x_2*np.cos(x_4) - x_3*np.sin(x_4)
         x_1_dot = x_2*np.sin(x_4) + x_3*np.cos(x_4)
         x_2_dot = x_5*x_3 + acceleration
         x_3_dot = -x_5*x_2 + 2./self.mass * (self.Fcf * np.cos(steering_angle) + self.Fcr)
         x_4_dot =  x_5
         x_5_dot = 2./self.yaw_inertia * (self.lf * self.Fcf * np.cos(steering_angle) - self.lr*self.Fcr)
-
         dFdt =  [x_0_dot, x_1_dot, x_2_dot, x_3_dot, x_4_dot, x_5_dot]
-
         return dFdt
 
     def future_outputs(self, u, del_u):
