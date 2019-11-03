@@ -200,7 +200,7 @@ class Driver2D(DynamicModel):
 
         self.Fcf = self.corn_stiff * (steering_angle - np.arctan((x_3 + self.lf*x_5) / (x_2 + eps)))
         self.Fcr = - self.corn_stiff * np.arctan((x_3 - self.lr*x_5) / (x_2 + eps))
-
+        x_2 = max(x_2, 0.0)
         x_0_dot = x_2*np.cos(x_4) - x_3*np.sin(x_4)
         x_1_dot = x_2*np.sin(x_4) + x_3*np.cos(x_4)
         x_2_dot = x_5*x_3 + acceleration

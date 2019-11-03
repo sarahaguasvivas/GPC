@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 MAX_ACCEL= 10.
 MIN_ACCEL = -5.0
 MAX_STEERING = np.pi/4.0 - 0.2
-R = 100.
-SIM_STEP = 0.05
+R = 200.
+SIM_STEP = 0.1
 MAX_SIM_STEPS = 50
 MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
 ALPHA= 30.
@@ -51,7 +51,7 @@ for n in range(MAX_SIM_STEPS):
     # Applying input to controller
     D2D.state, D2D.par_eps_par_u = D2D.predict(u = u_optimal, del_u = del_u, T = SIM_STEP)
 
-    u_optimal = np.reshape(D2D_opt.optimize(u = [0.0, 0.0], del_u = [0.0, 0.0], rtol = 1e-8, \
+    u_optimal = np.reshape(D2D_opt.optimize(u = u_optimal, del_u = del_u, rtol = 1e-8, \
                             maxit = MAX_NR_IT, verbose= False)[0], (-1, 1))
 
     u_optimal[0] = np.clip(u_optimal[0], MIN_ACCEL, MAX_ACCEL)
