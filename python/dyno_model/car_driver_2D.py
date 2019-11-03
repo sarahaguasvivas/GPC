@@ -194,7 +194,7 @@ class Driver2D(DynamicModel):
         x_6 = state[6:]
 
         self.__update_cornering_forces(state, u)
-        x_3 = max(0, x_3)
+        x_2 = max(0, x_2)
         x_0_dot = x_2*np.cos(x_4) - x_3*np.sin(x_4)
         x_1_dot = x_2*np.sin(x_4) + x_3*np.cos(x_4)
         x_2_dot = x_5*x_3 + acceleration

@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 
 ############### TUNING PARAMS: ##########################
 MAX_ACCEL= 10.
+MIN_ACCEL = -0.5
 MAX_STEERING = np.pi / 4.0
 R = 10.
 SIM_STEP = 0.1
+MAX_SIM_STEPS = 100
 MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
 #########################################################
 
@@ -18,28 +20,38 @@ del_u = np.array([0.0, 0.0])
 u_optimal = np.array([MAX_ACCEL, 0.0])
 
 state_new = np.random.multivariate_normal(mean = [0.05]*18, cov = 0.05*np.eye(18), size = 1).flatten().tolist()
+
 state_new[0] = R * np.cos(-np.pi/2.0)
 state_new[1] = R * np.sin(-np.pi/2.0)
+
 D2D.state = state_new
+
 start= state_new[:2]
 XY = [D2D.state[:2]]
 targ = []
 
-for n in range(10):
+way_point = 0
 
-    D2D.ym[0] =   R * np.cos((n+1)/100 - np.pi/2.0)
-    D2D.ym[1] =   R * np.sin((n+1)/100 - np.pi/2.0)
+for n in range(MAX_SIM_STEPS):
+
+    D2D.compute_cost(u_optimal, del_u)
+
+    if (D2D.Cost.cost < 0.02) and n > 0:
+        way_point +=1
+
+    D2D.ym[0] = D2D.state[0] +  R * np.cos((way_point+2)/100 - np.pi/2.0) - R*np.cos(-np.pi/2.0)
+    D2D.ym[1] = D2D.state[1] +  R * np.sin((way_point+2)/100 - np.pi/2.0) - R*np.sin(-np.pi/2.0)
 
     state_old = state_new
     u_optimal_old = u_optimal
 
     D2D.state = np.array(state_new).flatten()
 
-    u_optimal = np.reshape(D2D_opt.optimize(u = [0.0, 0.0], del_u = [0.0, 0.0], rtol = 1e-8, \
+    u_optimal = np.reshape(D2D_opt.optimize(u = u_optimal, del_u = del_u, rtol = 1e-8, \
                             maxit = MAX_NR_IT, verbose= False)[0], (-1, 1))
 
-    u_optimal[0] = np.clip(u_optimal[0], 0, 40)
-    u_optimal[1] = np.clip(u_optimal[1], -np.pi/4.0, np.pi/4.0)
+    u_optimal[0] = np.clip(u_optimal[0], MIN_ACCEL, MAX_ACCEL)
+    u_optimal[1] = np.clip(u_optimal[1], -MAX_STEERING, MAX_STEERING)
 
     print("u_optimal : ", u_optimal.flatten().tolist())
 
@@ -47,7 +59,7 @@ for n in range(10):
 
     u_optimal = np.array(u_optimal).flatten().tolist()
 
-    state_new = D2D.predict(u = u_optimal, del_u = [0.0, 0.0], T = SIM_STEP)
+    state_new = D2D.predict(u = u_optimal, del_u = del_u, T = SIM_STEP)
 
     D2D.yn = state_new[:2]
 
