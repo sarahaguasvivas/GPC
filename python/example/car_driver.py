@@ -7,15 +7,15 @@ import matplotlib.pyplot as plt
 MAX_ACCEL= 10.
 MIN_ACCEL = -5.0
 MAX_STEERING = np.pi/4.0 - 0.2
-R = 200.
-SIM_STEP = 0.1
-MAX_SIM_STEPS = 50
+R = 100.
+SIM_STEP = 0.0025
+MAX_SIM_STEPS = 3000
 MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
-ALPHA= 15.
-TARGET_THRESHOLD = 1.
+ALPHA= 30.
+TARGET_THRESHOLD = .5
 #########################################################
 
-D2D = Driver2D(ym = [0.0, 0.0], K = 10., yn = [0.0, 0.0], alpha = 30.)
+D2D = Driver2D(ym = [0.0, 0.0], K = .2, yn = [0.0, 0.0], alpha = ALPHA)
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
 del_u = np.array([0.0, 0.0])
@@ -43,16 +43,24 @@ for n in range(MAX_SIM_STEPS):
         way_point +=1
         starting_state = D2D.state[:2]
 
-    D2D.ym[0] = starting_state[0] + R * np.cos((way_point + 2)/100 - np.pi/2.0) - start[0]
-    D2D.ym[1] = starting_state[1] + R * np.sin((way_point + 2)/100 - np.pi/2.0) - start[1]
+    D2D.ym[0] = starting_state[0] + R * np.cos((way_point + 2)/10 - np.pi/2.0) - start[0]
+    D2D.ym[1] = starting_state[1] + R * np.sin((way_point + 2)/10 - np.pi/2.0) - start[1]
 
     u_optimal_old = u_optimal
 
     # Applying input to controller
     D2D.state, D2D.par_eps_par_u = D2D.predict(u = u_optimal, del_u = del_u, T = SIM_STEP)
 
-    u_optimal = np.reshape(D2D_opt.optimize(u = u_optimal, del_u = del_u, rtol = 1e-8, \
-                            maxit = MAX_NR_IT, verbose= False)[0], (-1, 1))
+    Fu = D2D.Fu(u_optimal, del_u)
+    Ju = D2D.Ju(u_optimal, del_u)
+
+    try:
+        u_optimal = D2D.alpha * np.dot(np.linalg.inv(Ju), Fu)
+    except:
+        u_optimal = np.array([0.0, 0.0])
+
+#    u_optimal = np.reshape(D2D_opt.optimize(u = u_optimal, del_u = del_u, rtol = 1e-8, \
+#                            maxit = MAX_NR_IT, verbose= False)[0], (-1, 1))
 
     u_optimal[0] = np.clip(u_optimal[0], MIN_ACCEL, MAX_ACCEL)
     u_optimal[1] = np.clip(u_optimal[1], -MAX_STEERING, MAX_STEERING)

@@ -12,7 +12,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 filename= "../model_data/neural_network_2.hdf5"
 
 NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, \
-                                    ym = [2., 0.5], K = 5, yn = [0.]*2, lambd = [1., 5., 5.])
+                                    ym = [2., 0.5], K = 2, yn = [0.]*2, lambd = [1., 5., .5])
 
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
