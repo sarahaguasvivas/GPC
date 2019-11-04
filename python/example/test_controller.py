@@ -8,7 +8,7 @@ import time
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
+plt.style.use('dark_background')
 filename= "../model_data/neural_network_2.hdf5"
 
 NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, \
@@ -79,14 +79,14 @@ plt.subplot(3, 1, 1)
 plt.plot(elapsed)
 
 plt.subplot(3, 1, 2)
-plt.plot(ym[:, 0], '--k', label= 'target')
+plt.plot(ym[:, 0], '--w', label= 'target')
 plt.plot(yn[:, 0], 'r', label = 'state')
 
 plt.legend()
 plt.ylabel("block distance")
 
 plt.subplot(3, 1, 3)
-plt.plot(ym[:, 1], '--k', label='target')
+plt.plot(ym[:, 1], '--w', label='target')
 plt.plot(yn[:, 1], 'r', label = 'state')
 plt.ylabel("twist")
 
