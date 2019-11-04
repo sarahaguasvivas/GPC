@@ -11,8 +11,8 @@ R = 200.
 SIM_STEP = 0.1
 MAX_SIM_STEPS = 50
 MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
-ALPHA= 30.
-TARGET_THRESHOLD = 0.5
+ALPHA= 15.
+TARGET_THRESHOLD = 1.
 #########################################################
 
 D2D = Driver2D(ym = [0.0, 0.0], K = 10., yn = [0.0, 0.0], alpha = 30.)
@@ -43,8 +43,8 @@ for n in range(MAX_SIM_STEPS):
         way_point +=1
         starting_state = D2D.state[:2]
 
-    D2D.ym[0] = R * np.cos((way_point + 1)/100 - np.pi/2.0)
-    D2D.ym[1] = R * np.sin((way_point + 1)/100 - np.pi/2.0)
+    D2D.ym[0] = starting_state[0] + R * np.cos((way_point + 2)/100 - np.pi/2.0) - start[0]
+    D2D.ym[1] = starting_state[1] + R * np.sin((way_point + 2)/100 - np.pi/2.0) - start[1]
 
     u_optimal_old = u_optimal
 
