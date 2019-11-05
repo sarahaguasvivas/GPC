@@ -4,12 +4,12 @@ from optimizer.newton_raphson import *
 import matplotlib.pyplot as plt
 
 ############### TUNING PARAMS: ##########################
-MAX_ACCEL= 5.
+MAX_ACCEL= 10.
 MIN_ACCEL = -5.0
 MAX_STEERING = np.pi/4.0 - 0.2
 R = 100.
 SIM_STEP = 0.0025
-MAX_SIM_STEPS = 10000
+MAX_SIM_STEPS = 1000
 MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
 ALPHA= 30.
 TARGET_THRESHOLD = .5
@@ -43,8 +43,8 @@ for n in range(MAX_SIM_STEPS):
         way_point +=1
         starting_state = D2D.state[:2]
 
-    D2D.ym[0] =  R * np.cos((way_point + 2)/10 - np.pi/2.0)
-    D2D.ym[1] =  R * np.sin((way_point + 2)/10 - np.pi/2.0)
+    D2D.ym[0] =  R * np.cos((way_point + 2)/1000 - np.pi/2.0)
+    D2D.ym[1] =  R * np.sin((way_point + 2)/1000 - np.pi/2.0)
 
     u_optimal_old = u_optimal
 
@@ -55,7 +55,7 @@ for n in range(MAX_SIM_STEPS):
     Ju = D2D.Ju(u_optimal, del_u)
 
     try:
-        u_optimal = D2D.alpha * np.dot(np.linalg.inv(Ju), Fu)
+        u_optimal =  u_optimal + SIM_STEP * D2D.alpha * np.dot(np.linalg.inv(Ju), Fu)
     except:
         u_optimal = np.array([0.0, 0.0])
 
