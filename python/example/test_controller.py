@@ -12,11 +12,11 @@ plt.style.use('dark_background')
 filename= "../model_data/neural_network_2.hdf5"
 
 NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, \
-                                    ym = [2., 0.5], K = 2, yn = [0.]*2, lambd = [1., 5., .5])
+                                    ym = [2., 0.5], K = 2, yn = [0.]*2, lambd = [1., 3., -0.5])
 
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
-new_state_new = np.random.multivariate_normal([0.0]*12, 0.5*np.eye(12), 1)
+new_state_new = np.random.multivariate_normal([0.05]*12, 0.05*np.eye(12), 1)
 
 du = [0.0]*3
 

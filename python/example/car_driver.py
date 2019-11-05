@@ -19,7 +19,7 @@ D2D = Driver2D(ym = [0.0, 0.0], K = .2, yn = [0.0, 0.0], alpha = ALPHA)
 D2D_opt = NewtonRaphson(cost= D2D.Cost, d_model= D2D)
 
 del_u = np.array([0.0, 0.0])
-u_optimal = np.array([MAX_ACCEL, 0.0])
+u_optimal = np.array([0.0, 0.0])
 
 state_new = np.random.multivariate_normal(mean = [0.05]*6, cov = 0.05*np.eye(6), size = 1).flatten().tolist()
 
@@ -55,7 +55,7 @@ for n in range(MAX_SIM_STEPS):
     Ju = D2D.Ju(u_optimal, del_u)
 
     try:
-        u_optimal =  u_optimal + SIM_STEP * D2D.alpha * np.dot(np.linalg.inv(Ju), Fu)
+        u_optimal =  u_optimal + SIM_STEP * D2D.alpha * np.dot(np.linalg.inv(Ju), Fu) # should it be + u_optimal?
     except:
         u_optimal = np.array([0.0, 0.0])
 
