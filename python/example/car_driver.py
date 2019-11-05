@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 MAX_ACCEL= 10.
 MIN_ACCEL = -5.0
 MAX_STEERING = np.pi/4.0 - 0.2
-R = 100.
+R = 15.
 SIM_STEP = 0.0025
-MAX_SIM_STEPS = 1000
+MAX_SIM_STEPS = 10000
 MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
 ALPHA= 30.
-TARGET_THRESHOLD = .5
+TARGET_THRESHOLD = 0.2
 #########################################################
 
 D2D = Driver2D(ym = [0.0, 0.0], K = .2, yn = [0.0, 0.0], alpha = ALPHA)
@@ -36,15 +36,14 @@ starting_state = start
 way_point = 0
 
 for n in range(MAX_SIM_STEPS):
-
     D2D.compute_cost(u_optimal, del_u)
 
     if (D2D.Cost.cost < TARGET_THRESHOLD) and n > 0:
-        way_point +=1
+        way_point += 1
         starting_state = D2D.state[:2]
 
-    D2D.ym[0] =  R * np.cos((way_point + 2)/1000 - np.pi/2.0)
-    D2D.ym[1] =  R * np.sin((way_point + 2)/1000 - np.pi/2.0)
+    D2D.ym[0] =  R * np.cos((way_point + 5)/1000 - np.pi/2.0)
+    D2D.ym[1] =  R * np.sin((way_point + 5)/1000 - np.pi/2.0)
 
     u_optimal_old = u_optimal
 
@@ -55,6 +54,7 @@ for n in range(MAX_SIM_STEPS):
     Ju = D2D.Ju(u_optimal, del_u)
 
     try:
+        # Solving Integral through Euler Method
         u_optimal =  u_optimal + SIM_STEP * D2D.alpha * np.dot(np.linalg.inv(Ju), Fu) # should it be + u_optimal?
     except:
         u_optimal = np.array([0.0, 0.0])
