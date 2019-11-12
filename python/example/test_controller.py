@@ -12,7 +12,7 @@ plt.style.use('dark_background')
 filename= "../model_data/neural_network_2.hdf5"
 
 NNP = NeuralNetworkPredictor(model_file = filename, N1 = 0, N2= 2, Nu = 3, \
-                                    ym = [2., 0.5], K = 2, yn = [0.]*2, lambd = [1., 3., -0.5])
+                                    ym = [2., 0.5], K = 2, yn = [0.]*2, lambd = [1., 2., -0.5])
 
 NR_opt = NewtonRaphson(cost= NNP.Cost, d_model= NNP)
 
@@ -46,6 +46,9 @@ for n in range(100):
 
     u_optimal = np.reshape(NR_opt.optimize(u= future_outputs, del_u= du, rtol = 1e-8, maxit=6, verbose=False)[0], (-1, 1))
 
+#    u_optimal[1, :] = np.clip(u_optimal[1, :], -0.5, 0.5)
+#    u_optimal[2, :] = np.clip(u_optimal[2, :], -0.5, 0.5)
+
     u_optimal_list+=[u_optimal.flatten().tolist()]
 
     du = np.array(new_state_old[:, -3:].flatten()) - np.array(u_optimal.flatten())
@@ -75,20 +78,31 @@ state = np.reshape(state, (-1, 2))
 u_optimal_list = np.reshape(u_optimal_list, (-1, 3))
 yn = np.reshape(yn, (-1, 2))
 
-plt.subplot(3, 1, 1)
-plt.plot(elapsed)
-
-plt.subplot(3, 1, 2)
+plt.subplot(4, 1, 1)
 plt.plot(ym[:, 0], '--w', label= 'target')
 plt.plot(yn[:, 0], 'r', label = 'state')
 
 plt.legend()
 plt.ylabel("block distance")
 
-plt.subplot(3, 1, 3)
+plt.subplot(4, 1, 2)
 plt.plot(ym[:, 1], '--w', label='target')
 plt.plot(yn[:, 1], 'r', label = 'state')
 plt.ylabel("twist")
+plt.legend()
+
+plt.subplot(4, 1, 3)
+plt.plot(u_optimal_list[:, 0], label='block distance')
+plt.ylabel(r'u_{block}')
+plt.legend()
+
+plt.subplot(4, 1, 4)
+plt.plot(u_optimal_list[:, 1], label='sin(twist)')
+plt.plot(u_optimal_list[:, 2], label='cos(twist)')
+plt.ylabel(r'u_{\phi}')
+plt.legend()
 
 plt.show()
+
+
 
