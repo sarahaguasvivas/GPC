@@ -12,12 +12,13 @@ MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
 TARGET_THRESHOLD = 0.2
 #########################################################
 
-D2D = Driver2DMPC(ym = [0.0, 0.0], K = .2, yn = [0.0, 0.0], dt = 0.002)
+D2D = Driver2DMPC(ym = [0.0, 0.0], K = .2, yn = [0.0, 0.0], dt = 0.02)
 
 del_u = np.array([0.0, 0.0])
-u_optimal = np.array([5.0, 0.0])
+u_optimal = np.array([10.0, 0.0])
 
-state_new_ode = np.random.multivariate_normal(mean = [1.5]*6, cov = 0.7*np.eye(6), size = 1).flatten().tolist()
+state_new_ode = np.random.multivariate_normal(mean = [0.0]*6, cov = 3.*np.eye(6), size = 1).flatten().tolist()
+
 state_new_ode[0] = 0.0
 state_new_ode[1] = 0.0
 
@@ -32,7 +33,7 @@ linear = []
 for i in range(MAX_SIM_STEPS):
 
     u_optimal[0] = 0.0
-    u_optimal[1] = np.pi/4.0 * np.sin(i)
+    u_optimal[1] = np.pi/4.0 * np.sin(i / D2D.dt)
 
     F, G, H, M = D2D._get_FGHM(state_new_linear, u_optimal)
     state_new_linear = np.add(np.dot(F, state_new_linear) ,  np.dot(G, u_optimal))
@@ -42,8 +43,8 @@ for i in range(MAX_SIM_STEPS):
 
     print(state_new_ode, state_new_linear)
 
-    state_new_ode[4] = state_new_ode[4] % (np.pi/2.0)
-    state_new_linear[4] = state_new_linear[4] % (np.pi/2.0)
+    #state_new_ode[4] = state_new_ode[4] % (np.pi/2.0)
+    #state_new_linear[4] = state_new_linear[4] % (np.pi/2.0)
 
     ode+=[state_new_ode]
     linear+=[state_new_linear]
