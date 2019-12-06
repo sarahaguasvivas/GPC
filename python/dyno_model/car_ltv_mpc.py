@@ -83,8 +83,8 @@ class Driver2DMPC(DynamicModel):
 
     def __update_cornering_forces(self, state, u):
         """
-        This updates the cornering forces using the
-        given control inputs and the state of the model
+            This updates the cornering forces using the
+            given control inputs and the state of the model
         """
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state
@@ -94,9 +94,9 @@ class Driver2DMPC(DynamicModel):
 
     def _partial_f_partial_xi(self, state, u):
         """
-        partial f
-        ---------- = A
-        partial xi
+            partial f
+            ---------- = A
+            partial xi
         """
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state
@@ -131,9 +131,9 @@ class Driver2DMPC(DynamicModel):
 
     def _partial_f_partial_u(self, state, u):
         """
-        partial f
-        ---------
-        partial u
+            partial f
+            ---------
+            partial u
         """
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state
@@ -180,14 +180,12 @@ class Driver2DMPC(DynamicModel):
         self.__update_cornering_forces(delta_ode_state[-1], u)
         return np.array(delta_ode_state[-1]).flatten()
 
-
-
     def __integrator(self, state, t, u, del_u):
         """
-        states:
-            x_0 : x, x_1 : y, x_2 : x_dot, x_3 : y_dot, x_4 : yaw, x_5 : yaw_dot
-        inputs:
-            u[0] : acceleration, u[1] : steering
+            states:
+                x_0 : x, x_1 : y, x_2 : x_dot, x_3 : y_dot, x_4 : yaw, x_5 : yaw_dot
+            inputs:
+                u[0] : acceleration, u[1] : steering
         """
         acceleration, steering_angle = u
 

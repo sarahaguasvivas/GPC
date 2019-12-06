@@ -25,6 +25,9 @@ class QP(Optimizer):
         return numpy.array(sol['x']).reshape((P.shape[1],))
 
     def __quadprog_solve_qp(self, P, q, G=None, h=None, A=None, b=None):
+        """
+            Function taken from: https://scaron.info/blog/quadratic-programming-in-python.html
+        """
         qp_G = .5 * (P + P.T)   # make sure P is symmetric
         qp_a = -q
         if A is not None:
@@ -37,8 +40,14 @@ class QP(Optimizer):
             meq = 0
         return quadprog.solve_qp(qp_G, qp_a, qp_C, qp_b, meq)[0]
 
-    def optimize(self):
-        pass
+    def optimize(self, P, q, G, h, A, b):
+        """
+            Q has to be 2xNc because we are trying to
+            get optimal u (acceleration, steering) --> this is a tuning param
+            P --> other tuning parameter
+            B -->
+        """
+        return self.__cvxopt_solve_qp(P, q, G, h, A, b)
 
 
 
