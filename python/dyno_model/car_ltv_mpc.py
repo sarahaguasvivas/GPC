@@ -8,13 +8,17 @@ from scipy.integrate import odeint
 import copy
 
 class Driver2DMPC(DynamicModel):
-    def __init__(self, ym : list, K : int, \
+    def __init__(self, ym : list, N : int, Nc : int, \
             yn : list, dt: float):
-        self.ym = ym
+
         self.state = None
+        self.ym = ym
         self.yn = yn
         self.dt = dt
-        self.K = K
+
+        self.N = N
+        self.Nc= Nc
+
         self.constraints = Constraints(s = 1., r = 1., b = 1.)
         self.collided: bool = False
         self.length: float = 4.9  # a typical car length (Toyota Camry)
@@ -128,7 +132,8 @@ class Driver2DMPC(DynamicModel):
                                     (self.corn_stiff*np.cos(steering))/((x_2+eps)*((x_3 + self.lf*x_5)**2/(x_2**2+eps) + 1))))/self.mass],
                 [0, 0, 0, 0, 0, 1],
                 [ 0, 0, -(2.*((self.corn_stiff*self.lr*(x_3 - self.lr*x_5))/((x_2+eps)**2*((x_3 - self.lr*x_5)**2/(x_2**2+eps) + 1.)) -\
-                                (self.corn_stiff*self.lf*np.cos(steering)*(x_3 + self.lr*x_5))/((x_2+eps)**2*((x_3 + self.lr*x_5)**2/(x_2**2+eps) + 1))))/self.yaw_inertia, \
+                                (self.corn_stiff*self.lf*np.cos(steering)*(x_3 + self.lr*x_5))/((x_2+eps)**2*((x_3 + \
+                                        self.lr*x_5)**2/(x_2**2+eps) + 1))))/self.yaw_inertia, \
                                         (2.*((self.corn_stiff*self.lr)/((x_2+eps)*((x_3 - self.lr*x_5)**2/(x_2**2+eps) + 1)) - \
                                         (self.corn_stiff*self.lf*np.cos(steering))/(eps + x_2*((x_3 + self.lr*x_5)**2/(x_2+eps)**2 + \
                                         1))))/self.yaw_inertia, 0, -(2.*((self.corn_stiff*self.lr**2)/(eps + x_2*((x_3 - \
@@ -175,6 +180,9 @@ class Driver2DMPC(DynamicModel):
         dFdt =  [x_0_dot, x_1_dot, x_2_dot, x_3_dot, x_4_dot, x_5_dot]
         return dFdt
 
-    def predict(self):
-        pass
+    def predict(self, u):
+        # N is the prediction horizon
+        F, G, H, M = self._get_FGHM(self.state, u)
+        future_state = np.add(np.dot(F, self.state), np.dot(G, u))
+        return future_state
 
