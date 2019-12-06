@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from dyno_model.car_ltv_mpc import *
-from optimizer.newton_raphson import *
+from optimizer.qp import *
 import matplotlib.pyplot as plt
 
 ############### TUNING PARAMS: ##########################
@@ -13,6 +13,7 @@ TARGET_THRESHOLD = 0.2
 #########################################################
 
 D2D = Driver2DMPC(ym = [0.0, 0.0], N = .5, Nc = 1,  yn = [0.0, 0.0], dt = 0.02)
+QP = QP()
 
 u_optimal = np.array([10.0, 0.0])
 

@@ -16,8 +16,8 @@ class Driver2DMPC(DynamicModel):
         self.yn = yn
         self.dt = dt
 
-        self.N = N
-        self.Nc= Nc
+        self.N = N    # prediction horizon
+        self.Nc= Nc   # control horizon
 
         self.constraints = Constraints(s = 1., r = 1., b = 1.)
         self.collided: bool = False
@@ -45,11 +45,7 @@ class Driver2DMPC(DynamicModel):
 
     def _get_FGHM(self, state, u):
         """
-            A = J_A
-            B = J_B
-            H = x, y
-            M = 0
-
+            A = J_A    B = J_B    H = [x, y]    M = 0
             x(k+1) = F*x(k) + G*u(k)
             y(k+1) = H*x(k) + M*u(k)
         """
@@ -59,15 +55,16 @@ class Driver2DMPC(DynamicModel):
         Hk = np.zeros((2, 6))
         Hk[0, 0] = 1.
         Hk[1, 1] = 1.
+
         # M = 0 so not counting
         Mk = np.zeros((6, 2))
+
         # Getting F_k:
         Acum = np.identity(A.shape[0])
         Sum = np.zeros(A.shape[0])
         for i in range(A.shape[0]):
             Sum= np.add(Sum, (Acum*self.dt**i)/np.math.factorial(i))
             Acum = np.dot(Acum, A)
-
         Fk = Sum
 
         # Getting G_k:
@@ -77,27 +74,18 @@ class Driver2DMPC(DynamicModel):
             Sum = np.add(Sum, (Acum*self.dt**(i)/np.math.factorial(i)))
             Acum = np.dot(Acum, A)
         Gk = np.dot(Sum, B)
+
         return Fk, Gk, Hk, Mk
 
-
-    def predict_ode(self, u, del_u, T):
-        """
-            states:
-            x_0 : x, x_1 : y,  x_2 : x_dot, x_3 : y_dot, x_4 : yaw, x_5 : yaw_dot
-
-            inputs:
-            u[0] : acceleration, u[1] : steering
-        """
-        old_state = copy.copy(self.state)
-        steps = np.arange(0.0, T, T / 10.) # We're predicting after T steps
-        delta_ode_state = odeint(self.__integrator, old_state, steps, args= (u,del_u))
-        self.__update_cornering_forces(delta_ode_state[-1], u)
-        return np.array(delta_ode_state[-1]).flatten()
 
     def compute_cost(self, u, del_u):
         return self.Cost.compute_cost(u, del_u)
 
     def __update_cornering_forces(self, state, u):
+        """
+        This updates the cornering forces using the
+        given control inputs and the state of the model
+        """
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state
         eps = 1e-8
@@ -106,8 +94,9 @@ class Driver2DMPC(DynamicModel):
 
     def _partial_f_partial_xi(self, state, u):
         """
-        This is the equivalent of A
-
+        partial f
+        ---------- = A
+        partial xi
         """
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state
@@ -141,6 +130,11 @@ class Driver2DMPC(DynamicModel):
                                         self.lr*x_5)**2/(x_2+eps)**2 + 1))))/self.yaw_inertia]])
 
     def _partial_f_partial_u(self, state, u):
+        """
+        partial f
+        ---------
+        partial u
+        """
         acceleration, steering = u
         x_0, x_1, x_2, x_3, x_4, x_5 = state
         eps= 1e-8
@@ -156,6 +150,37 @@ class Driver2DMPC(DynamicModel):
                         [0, (2.*(self.corn_stiff*self.lf*np.cos(steering) - \
                                 self.corn_stiff*self.lf*np.sin(steering)*(steering - \
                                 np.arctan((x_3 + self.lr*x_5)/(x_2)))))/self.yaw_inertia]])
+    def predict(self, u):
+        """
+            IN  : dynamic model (self), u
+            OUT : vector of predicted states
+
+            Predicts a state starting from the current state
+            within the prediction horizon (N)
+        """
+        predicted_state = self.state
+        for i in range(int(self.N/self.dt)):
+            F, G, H, M = self._get_FGHM(predicted_state, u)
+            predicted_state = np.add(np.dot(F, self.state), np.dot(G, u))
+        return predicted_state
+
+    ############################      WILL DELETE SOON BELOW      ###################################
+
+    def predict_ode(self, u, del_u, T):
+        """
+            states:
+            x_0 : x, x_1 : y,  x_2 : x_dot, x_3 : y_dot, x_4 : yaw, x_5 : yaw_dot
+
+            inputs:
+            u[0] : acceleration, u[1] : steering
+        """
+        old_state = copy.copy(self.state)
+        steps = np.arange(0.0, T, T / 10.) # We're predicting after T steps
+        delta_ode_state = odeint(self.__integrator, old_state, steps, args= (u,del_u))
+        self.__update_cornering_forces(delta_ode_state[-1], u)
+        return np.array(delta_ode_state[-1]).flatten()
+
+
 
     def __integrator(self, state, t, u, del_u):
         """
@@ -180,9 +205,4 @@ class Driver2DMPC(DynamicModel):
         dFdt =  [x_0_dot, x_1_dot, x_2_dot, x_3_dot, x_4_dot, x_5_dot]
         return dFdt
 
-    def predict(self, u):
-        # N is the prediction horizon
-        F, G, H, M = self._get_FGHM(self.state, u)
-        future_state = np.add(np.dot(F, self.state), np.dot(G, u))
-        return future_state
 
