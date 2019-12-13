@@ -44,7 +44,7 @@ state_new_linear = state_new_ode
 D2D.state = state_new_ode
 
 start_state = state_new_linear
-
+del_u = np.zeros((2, 6))
 ode = []
 linear = []
 
@@ -56,6 +56,8 @@ for i in range(MAX_SIM_STEPS):
     state_new_linear = D2D.predict(u_optimal)
 
     state_new_ode = D2D.predict_ode(u_optimal, [0.0, 0.0], D2D.dt)
+
+    del_u = D2D.optimize_lqr(QP, u_optimal, del_u)
 
     print(state_new_ode, state_new_linear)
 

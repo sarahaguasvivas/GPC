@@ -130,9 +130,18 @@ class Driver2DMPC(DynamicModel):
         predicted_trajectory = np.reshape(predicted_trajectory, (-1, 6))
         return np.dot(H, predicted_trajectory.T).T
 
+    def optimize_lqr(self, QP, u, del_u):
+        optimal_control = []
+        for i in range(self.Nc):
+            F, G, H, M = self._get_FGHM(state, u)
+            del_u = QP.lqr_optimize(F, G, self.Q, self.R, [self.N])
+            optimal_control = [del_u]
+        return optimal_control
+
     def get_optimal_control(self, QP, u, del_u):
 
-        Del_U = QP.optimize(self.Q, self.R, A, B)
+        Del_U = self.optimize_lqr(QP, u, del_u)
+        print(Del_U)
         return Del_U
 
     def compute_cost(self, u, del_u):

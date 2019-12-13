@@ -59,8 +59,9 @@ class QP(Optimizer):
         return self.__cvxopt_solve_qp(P, q, G, h, A, b)
 
 
-    def lqr_optimize(self, A, b, Q, R, [N]):
-        pass
+    def lqr_optimize(self, A, b, Q, R, N):
+        K, S, E = lqr(A, B, Q, R, [N])
+        return S
 
 
 
