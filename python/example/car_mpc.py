@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from dyno_model.car_ltv_mpc import *
 from optimizer.qp import *
+from cost.car_mpc import *
 import matplotlib.pyplot as plt
 
 ############### TUNING PARAMS: ##########################
@@ -12,7 +13,11 @@ MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
 TARGET_THRESHOLD = 0.2
 #########################################################
 
-D2D = Driver2DMPC(ym = [0.0, 0.0], N = .5, Nc = 1,  yn = [0.0, 0.0], dt = 0.02)
+Q = np.eye(0.5/0.02)
+R = np.eye(1/0.02)
+
+D2D = Driver2DMPC(ym = [0.0, 0.0], N = .5, Nc = 1,  yn = [0.0, 0.0], dt = 0.02, Q, R)
+Cost = Driver2DCost(D2D)
 QP = QP()
 
 u_optimal = np.array([10.0, 0.0])

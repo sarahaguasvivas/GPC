@@ -1,7 +1,9 @@
 from  .dynamic_model import *
-from cost.car_driver_2D_cost import *
+from cost.car_mpc import *
 from functions.functions import *
 from constraints.constraints import *
+from optimizer.qp import *
+
 import numpy as np
 import math
 from scipy.integrate import odeint
@@ -9,7 +11,7 @@ import copy
 
 class Driver2DMPC(DynamicModel):
     def __init__(self, ym : list, N : int, Nc : int, \
-            yn : list, dt: float):
+            yn : list, dt: float, Q = None, R = None):
 
         self.state = None
         self.ym = ym
@@ -18,6 +20,16 @@ class Driver2DMPC(DynamicModel):
 
         self.N = N    # prediction horizon
         self.Nc= Nc   # control horizon
+
+        if Q is None:
+            self.Q = np.eye(self.N)
+        else:
+            self.Q = Q
+
+        if R is None:
+            self.R = np.eye(self.Nc)
+        else:
+            self.R = R
 
         self.constraints = Constraints(s = 1., r = 1., b = 1.)
         self.collided: bool = False
@@ -77,6 +89,41 @@ class Driver2DMPC(DynamicModel):
 
         return Fk, Gk, Hk, Mk
 
+    def predict_trajectory(self, u, del_u):
+        """
+            u --> current control input
+            Del_U--> we are solving for it
+            N are prediction steps (continuous)
+            Nc are control steps (continuous)
+        """
+        state= self.state
+        u = u
+        predicted_trajectory = []
+        for i in range(int(self.N/self.dt)):
+            if i < int(self.Nc/self.dt):
+                F, G, H, M = self._get_FGHM(state, u + del_u[i])
+                state = np.add(np.dot(F, state), np.dot(G, u + del_u[i])).tolist()
+                u = u + del_u[i]
+                predicted_trajectory+=[state]
+            else:
+                # del_u = 0 for k = t + Nc, ..., t + N - 1
+                F, G, H, M = self._get_FGHM(state, u)
+                state = np.add(np.dot(F, state), np.dot(G, u)).tolist()
+                predicted_trajectory += [state]
+        return predicted_trajectory
+
+    def predict_measurements(self, predicted_trajectory):
+        H = np.zeros((2, 6))
+        H[0,0] = 1.
+        H[1,1] = 1.
+        predicted_trajectory = np.reshape(predicted_trajectory, (-1, 6))
+        return np.dot(H, predicted_trajectory.T)
+
+    def get_optimal_control(self, QP, u, del_u):
+
+
+        Del_U = QP.optimize(self.Q, self.R, A, B)
+        return Del_U
 
     def compute_cost(self, u, del_u):
         return self.Cost.compute_cost(u, del_u)

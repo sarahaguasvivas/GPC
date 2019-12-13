@@ -5,7 +5,13 @@ from cost.cost import *
 from dyno_model.dynamic_model import *
 
 class QP(Optimizer):
+    """
+        This implementation does the following:
 
+        minimize (1/2) x^T P x + q^T x
+        subject to Gx <= h
+                   Ax = b
+    """
     def __init__(self):
         super().__init__()
 
@@ -42,10 +48,12 @@ class QP(Optimizer):
 
     def optimize(self, P, q, G, h, A, b):
         """
-            Q has to be 2xNc because we are trying to
-            get optimal u (acceleration, steering) --> this is a tuning param
             P --> other tuning parameter
-            B -->
+            q -->
+            G -->
+            h -->
+            A -->
+            b -->
         """
         return self.__cvxopt_solve_qp(P, q, G, h, A, b)
 
