@@ -3,6 +3,7 @@ from cvxopt import matrix
 from .optimizer import *
 from cost.cost import *
 from dyno_model.dynamic_model import *
+from control.matlab import *
 
 class QP(Optimizer):
     """
@@ -56,6 +57,10 @@ class QP(Optimizer):
             b -->
         """
         return self.__cvxopt_solve_qp(P, q, G, h, A, b)
+
+
+    def lqr_optimize(self, A, b, Q, R, [N]):
+        pass
 
 
 

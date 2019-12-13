@@ -5,18 +5,31 @@ from cost.car_mpc import *
 import matplotlib.pyplot as plt
 
 ############### TUNING PARAMS: ##########################
-MAX_ACCEL= 15.
-MIN_ACCEL = -5.0
-MAX_STEERING = np.pi/4.0 - 0.2
+MAX_ACC_CHANGE = 1.
+MIN_ACC_CHANGE = -1.0
+MAX_ACC = 40.
+
+MAX_ST_CHANGE = np.deg2rad(1.5)
+MIN_ST_CHANGE = -np.deg2rad(1.5)
+MAX_ST_ANGLE = np.deg2rad(10.)
+
 MAX_SIM_STEPS = 1000
-MAX_NR_IT = 8 # Maximum Newton Raphson Iterations
 TARGET_THRESHOLD = 0.2
+
+Q = np.array([[200., 0, 0], [0, 10., 0], [0, 0, 10.]])
+R = 5e4
+N = 25
+Nc = 10
+mu = 0.3
+T = 0.05
+rho = 1e3
 #########################################################
 
-Q = np.eye(0.5/0.02)
-R = np.eye(1/0.02)
-
-D2D = Driver2DMPC(ym = [0.0, 0.0], N = .5, Nc = 1,  yn = [0.0, 0.0], dt = 0.02, Q, R)
+# Using parameters in Predictive Active Steering Control for Autonomous Vehicle Systems;
+# https://borrelli.me.berkeley.edu/pdfpub/pub-2.pdf
+D2D = Driver2DMPC(N = N, Nc = Nc, dt = T, mu = mu, rho = rho, \
+                    steering_limits = [MIN_ST_CHANGE, MAX_ST_CHANGE, MAX_ST_ANGLE],\
+                            acc_limits = [MIN_ACC_CHANGE, MAX_ACC_CHANGE, MAX_ACC], Q=Q, R=R)
 Cost = Driver2DCost(D2D)
 QP = QP()
 

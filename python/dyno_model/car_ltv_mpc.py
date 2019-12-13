@@ -10,16 +10,27 @@ from scipy.integrate import odeint
 import copy
 
 class Driver2DMPC(DynamicModel):
-    def __init__(self, ym : list, N : int, Nc : int, \
-            yn : list, dt: float, Q = None, R = None):
-
+    def __init__(self, N : int, Nc : int, \
+            dt: float, mu : float, rho : float, \
+                    steering_limits : list, acc_limits : list, \
+                            Q = None, R = None):
         self.state = None
-        self.ym = ym
-        self.yn = yn
-        self.dt = dt
+        self.ym = None
+        self.yn = None
 
+        self.dt = dt
         self.N = N    # prediction horizon
         self.Nc= Nc   # control horizon
+        self.mu = mu
+        self.rho = rho
+
+        self.MIN_DEL_STEERING = steering_limits[0]
+        self.MAX_DEL_STEERING = steering_limits[1]
+        self.MAX_STEERING = steering_limits[2]
+
+        self.MIN_DEL_ACCEL = acc_limits[0]
+        self.MAX_DEL_ACCEL = acc_limits[1]
+        self.MAX_ACCEL = acc_limits[2]
 
         if Q is None:
             self.Q = np.eye(self.N)
@@ -27,11 +38,10 @@ class Driver2DMPC(DynamicModel):
             self.Q = Q
 
         if R is None:
-            self.R = np.eye(self.Nc)
+            self.R = 100.
         else:
             self.R = R
 
-        self.constraints = Constraints(s = 1., r = 1., b = 1.)
         self.collided: bool = False
         self.length: float = 4.9  # a typical car length (Toyota Camry)
         self.width: float = 1.83  # a typical car width (Toyota Camry)
@@ -47,6 +57,7 @@ class Driver2DMPC(DynamicModel):
         self.slip_coefficient = 1.0
         self.max_speed = 200  # TODO: make configurable
         super().__init__()
+
         self.Cost = Driver2DCost(self)
 
     def Ju(self, u, del_u):
@@ -99,8 +110,8 @@ class Driver2DMPC(DynamicModel):
         state= self.state
         u = u
         predicted_trajectory = []
-        for i in range(int(self.N/self.dt)):
-            if i < int(self.Nc/self.dt):
+        for i in range(self.N):
+            if i < self.Nc:
                 F, G, H, M = self._get_FGHM(state, u + del_u[i])
                 state = np.add(np.dot(F, state), np.dot(G, u + del_u[i])).tolist()
                 u = u + del_u[i]
@@ -117,10 +128,9 @@ class Driver2DMPC(DynamicModel):
         H[0,0] = 1.
         H[1,1] = 1.
         predicted_trajectory = np.reshape(predicted_trajectory, (-1, 6))
-        return np.dot(H, predicted_trajectory.T)
+        return np.dot(H, predicted_trajectory.T).T
 
     def get_optimal_control(self, QP, u, del_u):
-
 
         Del_U = QP.optimize(self.Q, self.R, A, B)
         return Del_U
@@ -206,7 +216,7 @@ class Driver2DMPC(DynamicModel):
             within the prediction horizon (N)
         """
         predicted_state = self.state
-        for i in range(int(self.N/self.dt)):
+        for i in range(self.N):
             F, G, H, M = self._get_FGHM(predicted_state, u)
             predicted_state = np.add(np.dot(F, self.state), np.dot(G, u))
         return predicted_state
