@@ -12,7 +12,8 @@ import copy
 class Driver2DMPC(DynamicModel):
     def __init__(self, N : int, Nc : int, \
             dt: float, mu : float, rho : float, \
-                    steering_limits : list, acc_limits : list, \
+            umin = None, umax=  None, xmin = None, xmax = None,
+                        max_speed = None, \
                             Q = None, R = None):
         self.state = None
         self.ym = None
@@ -24,21 +25,41 @@ class Driver2DMPC(DynamicModel):
         self.mu = mu
         self.rho = rho
 
-        self.MIN_DEL_STEERING = steering_limits[0]
-        self.MAX_DEL_STEERING = steering_limits[1]
-        self.MAX_STEERING = steering_limits[2]
+        if max_speed is None:
+            max_speed = np.inf
+        else:
+            max_speed = max_speed
 
-        self.MIN_DEL_ACCEL = acc_limits[0]
-        self.MAX_DEL_ACCEL = acc_limits[1]
-        self.MAX_ACCEL = acc_limits[2]
+        # Setting up constraints:
+        if umin is None:
+            self.umin = [-5, -np.pi/4.0]
+            self.Nu = 2
+        else:
+            self.umin = umin
+            self.Nu = len(umin)
+
+        if umax is None:
+            self.umax = [10, np.pi/4.0]
+        else:
+            self.umax = umax
+
+        if xmin is None:
+            self.xmin = [-np.inf]*6
+        else:
+            self.xmin = xmin
+
+        if xmax is None:
+            self.xmax = [np.inf]*6
+        else:
+            self.xmax = xmax
 
         if Q is None:
-            self.Q = np.eye(self.N)
+            self.Q = np.eye(2)
         else:
             self.Q = Q
 
         if R is None:
-            self.R = 100.
+            self.R = 150.
         else:
             self.R = R
 
@@ -130,18 +151,10 @@ class Driver2DMPC(DynamicModel):
         predicted_trajectory = np.reshape(predicted_trajectory, (-1, 6))
         return np.dot(H, predicted_trajectory.T).T
 
-    def optimize_lqr(self, QP, u, del_u):
-        optimal_control = []
-        for i in range(self.Nc):
-            F, G, H, M = self._get_FGHM(state, u)
-            del_u = QP.lqr_optimize(F, G, self.Q, self.R, [self.N])
-            optimal_control = [del_u]
-        return optimal_control
-
-    def get_optimal_control(self, QP, u, del_u):
-
-        Del_U = self.optimize_lqr(QP, u, del_u)
-        print(Del_U)
+    def get_optimal_control(self, QP, state, u):
+        dynamics = self
+        Del_U = QP.optimize(dynamics = dynamics, state = state, u0 = u)
+        print("u_optimal: ", Del_U)
         return Del_U
 
     def compute_cost(self, u, del_u):

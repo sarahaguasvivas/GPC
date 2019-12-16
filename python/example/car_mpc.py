@@ -5,21 +5,19 @@ from cost.car_mpc import *
 import matplotlib.pyplot as plt
 
 ############### TUNING PARAMS: ##########################
-MAX_ACC_CHANGE = 1.
-MIN_ACC_CHANGE = -1.0
-MAX_ACC = 40.
-
-MAX_ST_CHANGE = np.deg2rad(1.5)
-MIN_ST_CHANGE = -np.deg2rad(1.5)
-MAX_ST_ANGLE = np.deg2rad(10.)
+xmin = None
+xmax = None
+" u = [accel, steering]"
+umin = [-5., -np.pi/4.0]
+umax = [10., np.pi/4.0]
 
 MAX_SIM_STEPS = 1000
 TARGET_THRESHOLD = 0.2
 
-Q = np.array([[200., 0, 0], [0, 10., 0], [0, 0, 10.]])
+Q = np.array([[200, 0], [0, 10.]]) # 3x3 in paper need to check
 R = 5e4
-N = 25
-Nc = 10
+N = 5
+Nc = 1
 mu = 0.3
 T = 0.05
 rho = 1e3
@@ -28,8 +26,8 @@ rho = 1e3
 # Using parameters in Predictive Active Steering Control for Autonomous Vehicle Systems;
 # https://borrelli.me.berkeley.edu/pdfpub/pub-2.pdf
 D2D = Driver2DMPC(N = N, Nc = Nc, dt = T, mu = mu, rho = rho, \
-                    steering_limits = [MIN_ST_CHANGE, MAX_ST_CHANGE, MAX_ST_ANGLE],\
-                            acc_limits = [MIN_ACC_CHANGE, MAX_ACC_CHANGE, MAX_ACC], Q=Q, R=R)
+                            umin = umin, umax= umax, xmin = xmin,\
+                                    xmax = xmax, Q=Q, R=R)
 Cost = Driver2DCost(D2D)
 QP = QP()
 
@@ -51,13 +49,13 @@ linear = []
 for i in range(MAX_SIM_STEPS):
     u_optimal[0] = 0.0
     u_optimal[1] = np.pi/4.0 * np.sin(i / D2D.dt)
-
+    D2D.ym = [2., 2.]
     D2D.state = state_new_ode
     state_new_linear = D2D.predict(u_optimal)
 
     state_new_ode = D2D.predict_ode(u_optimal, [0.0, 0.0], D2D.dt)
 
-    del_u = D2D.optimize_lqr(QP, u_optimal, del_u)
+    del_u = D2D.get_optimal_control(QP, state_new_ode, u_optimal)
 
     print(state_new_ode, state_new_linear)
 
