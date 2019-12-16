@@ -33,7 +33,7 @@ QP = QP()
 
 u_optimal = np.array([10.0, 0.0])
 
-state_new_ode = np.random.multivariate_normal(mean = [0.0]*6, cov = 3.*np.eye(6), size = 1).flatten().tolist()
+state_new_ode = np.random.multivariate_normal(mean = [0.0]*6, cov = 1.*np.eye(6), size = 1).flatten().tolist()
 
 state_new_ode[0] = 0.0
 state_new_ode[1] = 0.0
