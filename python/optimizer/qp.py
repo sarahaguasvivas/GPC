@@ -1,10 +1,12 @@
 import numpy as np
-import osqp
 from .optimizer import *
 from cost.cost import *
 from dyno_model.dynamic_model import *
-from control.matlab import *
-from scipy import sparse
+import cvxopt
+from cvxopt import matrix
+import scipy.linalg
+
+
 
 class QP(Optimizer):
     """
@@ -15,64 +17,101 @@ class QP(Optimizer):
                    Ax = b
 
         I heavily made use of this: https://osqp.org/docs/examples/mpc.html
+        Also this code: https://github.com/AtsushiSakai/PyAdvancedControl/blob/master/mpc_modeling/mpc_modeling.py
     """
     def __init__(self):
         super().__init__()
 
+    def _inequality_constraints(self, N, nx, nu, xmin, xmax, umin, umax):
+        """
+            This function shapes the inequality constraints matrices. It
+            was taken from
+            https://github.com/AtsushiSakai/PyAdvancedControl/blob/master/mpc_modeling/mpc_modeling.py
+        """
+        G = np.zeros((0, (nx+nu) * N))
+        h = np.zeros((0, 2))
+
+        if umax is not None:
+            tG = np.hstack([np.eye(N*nu), np.zeros((N*nu, nx*N))])
+            th = np.kron(np.ones((N*nu, 1)), umax)
+            G = np.vstack([G, tG])
+            h = np.vstack([h, th])
+
+        if umin is not None:
+            tG = np.hstack([np.eye(N*nu)*-1.0, np.zeros((N*nu, nx*N))])
+            new_u = []
+            for i in range(nu):
+                new_u += [-umin[i]]
+            th = np.kron(np.ones((N, 1)), new_u)
+            G = np.vstack([G, tG])
+            h = np.vstack([h, th])
+
+        if xmax is not None:
+            tG = np.hstack([np.zeros((N))])
+            th = np.kron(np.ones((N, 1)), xmax)
+            print(G.shape, tG.shape)
+            G = np.vstack([G, tG])
+            h = np.vstack([h, th])
+
+        if xmin is not None:
+            tG = np.hstack([np.zeros((N*nx, nu*N)), np.eye(N*nx)*-1.0])
+            new_x = []
+            for i in range(nx):
+                new_x += [-xmin[i]]
+            th = np.kron(np.ones((N, 1)), new_x)
+            G = np.vstack([G, tG])
+            h = np.vstack([h, th])
+
+        return G, h
+
     def optimize(self, dynamics, state, u0):
         """
-        Using: https://osqp.org/docs/examples/mpc.html
-            dynamics-> Object of the class DynamicModel
-            state -> current state of the system
-            P --> quadratic objective
-            q --> linear objective
-            G --> soft constraints A matrix
-            h --> soft constraint b matrix
-            A --> hard constraint A matrix
-            b --> hard constraint b marix
-            u0 is u_optimal in previous step
+            Using: https://osqp.org/docs/examples/mpc.html
+                dynamics-> Object of the class DynamicModel
+                state -> current state of the system
+                P --> quadratic objective
+                q --> linear objective
+                G --> soft constraints A matrix
+                h --> soft constraint b matrix
+                A --> hard constraint A matrix
+                b --> hard constraint b marix
+                u0 is u_optimal in previous step
         """
         Ad, Bd, _, _ = dynamics._get_FGHM(state, u0)
 
         [nx, nu] = Bd.shape
+        H = scipy.linalg.block_diag(np.kron(np.eye(dynamics.N), dynamics.R), \
+                np.kron(np.eye(dynamics.N-1), dynamics.Q), np.eye(nx))
 
-        # Quadratic Objective:
-        P = sparse.block_diag([sparse.kron(np.eye(dynamics.N), dynamics.Q),\
-                        dynamics.Q, sparse.kron(np.eye(dynamics.N), \
-                                dynamics.R)], format = 'csc')
-        print(P.shape)
-        # Linear Objective:
-        q = np.hstack([np.kron(np.ones(dynamics.N), -dynamics.Q.dot(np.array(dynamics.ym))), \
-                                -dynamics.Q.dot(dynamics.ym), \
-                                    np.zeros(dynamics.N*nu)])
-        q = q[:P.shape[0]]
+        Aeu = np.kron(np.eye(dynamics.N), - Bd)
 
-        # Linear Dynamics:
-        Ax = sparse.kron(sparse.eye(dynamics.N+1), - sparse.eye(nx)) + sparse.kron(sparse.eye(dynamics.N+1, k=-1), Ad)
-        Bu = sparse.kron(sparse.vstack([sparse.csc_matrix((1, dynamics.N)), sparse.eye(dynamics.N)]), Bd)
+        Aex = scipy.linalg.block_diag(np.eye((dynamics.N - 1)*nx), np.eye(nx))
+        Aex -= np.kron(np.diag([1.0]*(dynamics.N-1), k=-1), Ad)
 
-        Aeq = sparse.hstack([Ax, Bu])
-        leq = np.hstack([-state, np.zeros(dynamics.N*nx)])
+        Ae = np.hstack((Aeu, Aex))
 
-        Aineq = sparse.eye((dynamics.N+1)*nx + dynamics.N*nu)
-        lineq = np.hstack([np.kron(np.ones(dynamics.N + 1), dynamics.xmin), np.kron(np.ones(dynamics.N), dynamics.umin)])
-        uineq = np.hstack([np.kron(np.ones(dynamics.N+1), dynamics.xmax), np.kron(np.ones(dynamics.N), dynamics.umax)])
+        print(Ad.shape, np.zeros(((dynamics.N-1)*nx, nx)).shape, state.shape)
 
-        # OSQP constraints:
-        A = sparse.vstack([Aeq, Aineq], format='csc')
-        l = np.hstack([leq, lineq])
-        u = np.hstack([leq, uineq])
+        be = np.vstack((Ad, np.zeros(((dynamics.N-1)*nx, nx)))).dot(state)
 
-        prob = osqp.OSQP()
-        prob.setup(P, q, A, l, warm_start=True)
-        res = prob.solve()
+        P = matrix(H)
+        q = matrix(np.zeros((dynamics.N * nx + dynamics.N * nu, 1)))
+        Ad = matrix(Ae)
+        b = matrix(be)
 
-        if res.info.status != 'solved':
-            raise ValueError('OSQP solver did not solve the problem')
+        G, h = self._inequality_constraints(dynamics.N, nx, nu, dynamics.xmin, dynamics.xmax, dynamics.umin, dynamics.umax)
 
-        u_optimal = res.x[-dynamics.N*nu:-(dynamics.N-1)*nu]
+        G = matrix(G)
+        h = matrix(h)
 
-        return u_optimal
+        sol = cvxopt.solvers.qp(P, q, G, h, A = Ad, b = b)
+
+        fx = np.array(sol["x"])
+        u_optimal = fx[0:N*nu].reshape(N, nu).T
+        x = fx[-N*nx:].reshape(N, nx).T
+        print(u_optimal)
+        x = np.hstack((state, x))
+        return x, u_optimal
 
 
 
