@@ -29,7 +29,12 @@ class QP(Optimizer):
             https://github.com/AtsushiSakai/PyAdvancedControl/blob/master/mpc_modeling/mpc_modeling.py
         """
         G = np.zeros((0, (nx+nu) * N))
-        h = np.zeros((0, 2))
+        h = np.zeros((0, 1))
+
+        umax = np.reshape(umax, (-1, 1))
+        umin = np.reshape(umin, (-1, 1))
+        xmax = np.reshape(xmax, (-1, 1))
+        xmin = np.reshape(xmin, (-1, 1))
 
         if umax is not None:
             tG = np.hstack([np.eye(N*nu), np.zeros((N*nu, nx*N))])
@@ -40,28 +45,21 @@ class QP(Optimizer):
         if umin is not None:
             tG = np.hstack([np.eye(N*nu)*-1.0, np.zeros((N*nu, nx*N))])
             new_u = []
-            for i in range(nu):
-                new_u += [-umin[i]]
-            th = np.kron(np.ones((N, 1)), new_u)
+            th = np.kron(np.ones((N, 1)), -umin)
             G = np.vstack([G, tG])
             h = np.vstack([h, th])
 
         if xmax is not None:
-            tG = np.hstack([np.zeros((N))])
+            tG = np.hstack([np.zeros((N * nx, nu * N)), np.eye(N * nx)])
             th = np.kron(np.ones((N, 1)), xmax)
-            print(G.shape, tG.shape)
             G = np.vstack([G, tG])
             h = np.vstack([h, th])
 
         if xmin is not None:
             tG = np.hstack([np.zeros((N*nx, nu*N)), np.eye(N*nx)*-1.0])
-            new_x = []
-            for i in range(nx):
-                new_x += [-xmin[i]]
-            th = np.kron(np.ones((N, 1)), new_x)
+            th = np.kron(np.ones((N, 1)), -xmin)
             G = np.vstack([G, tG])
             h = np.vstack([h, th])
-
         return G, h
 
     def optimize(self, dynamics, state, u0):
@@ -90,8 +88,6 @@ class QP(Optimizer):
 
         Ae = np.hstack((Aeu, Aex))
 
-        print(Ad.shape, np.zeros(((dynamics.N-1)*nx, nx)).shape, state.shape)
-
         be = np.vstack((Ad, np.zeros(((dynamics.N-1)*nx, nx)))).dot(state)
 
         P = matrix(H)
@@ -109,7 +105,6 @@ class QP(Optimizer):
         fx = np.array(sol["x"])
         u_optimal = fx[0:N*nu].reshape(N, nu).T
         x = fx[-N*nx:].reshape(N, nx).T
-        print(u_optimal)
         x = np.hstack((state, x))
         return x, u_optimal
 
