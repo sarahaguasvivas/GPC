@@ -155,8 +155,6 @@ class QP(Optimizer):
 
         Gk = 2.0 * Theta.T @ dynamics.Q @ Err.T
 
-        print(Hk.shape, Gk.shape)
-
         P = matrix(Hk)
         q = matrix(np.zeros((Hk.shape[0], 1)))
         G = matrix(Gk.T)

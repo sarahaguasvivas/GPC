@@ -37,7 +37,7 @@ state_new_ode = np.random.multivariate_normal(mean = [0.0]*6, cov = 1.*np.eye(6)
 
 state_new_ode[0] = 0.0
 state_new_ode[1] = 0.0
-
+start= [0, 0]
 state_new_linear = state_new_ode
 D2D.state = state_new_ode
 
@@ -50,7 +50,7 @@ ctrl=[]
 
 for i in range(MAX_SIM_STEPS):
 
-    D2D.ym = [1., 1.]
+    D2D.ym = [1., 0.]
     D2D.state = state_new_ode
     state_new_linear = D2D.predict(u_optimal)
 
@@ -73,6 +73,7 @@ plt.figure()
 plt.subplot(1, 2, 1)
 plt.plot(state[:, 0], state[:, 1], 'k', label = 'trajectory')
 plt.plot(target[:, 0], target[:, 1], 'or', label = 'target')
+plt.plot(start[0], start[1], 'ob', label ='start')
 plt.legend()
 
 plt.subplot(1, 2, 2)
