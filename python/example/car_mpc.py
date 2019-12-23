@@ -12,15 +12,16 @@ umin = [-5., -np.pi/4.0]
 umax = [10., np.pi/4.0]
 
 MAX_SIM_STEPS = 1000
-TARGET_THRESHOLD = 0.2
+TARGET_THRESHOLD = 1.
 
 Q = np.array([[200, 0], [0, 10.]]) # 3x3 in paper need to check
 R = 5e4* np.eye(2)
 N = 5
 Nc = 1
 mu = 0.3
-T = 0.05
+T = 0.1
 rho = 1e3
+Radius = 15. # m
 #########################################################
 
 # Using parameters in Predictive Active Steering Control for Autonomous Vehicle Systems;
@@ -36,8 +37,10 @@ u_optimal = np.array([10.0, 0.0])
 state_new_ode = np.random.multivariate_normal(mean = [0.0]*6, cov = 1.*np.eye(6), size = 1).flatten().tolist()
 
 state_new_ode[0] = 0.0
-state_new_ode[1] = 0.0
-start= [0, 0]
+state_new_ode[1] = -Radius
+state_new_ode[4] = 0.0
+
+start= [state_new_ode[0], state_new_ode[1]]
 state_new_linear = state_new_ode
 D2D.state = state_new_ode
 
@@ -48,10 +51,20 @@ target = []
 state = []
 ctrl=[]
 
+way_point = 0
 for i in range(MAX_SIM_STEPS):
 
-    D2D.ym = [1., 0.]
+    print(D2D.Cost.cost)
+
+    if (D2D.Cost.cost < TARGET_THRESHOLD) and i>0:
+        way_point +=1
+        starting_state= D2D.state[:2]
+
+    D2D.ym = [Radius * np.cos((way_point + 5)/100 - np.pi/2.0), \
+                Radius * np.sin((way_point + 5)/100 - np.pi/2.0)]
+
     D2D.state = state_new_ode
+
     state_new_linear = D2D.predict(u_optimal)
 
     state_new_ode = D2D.predict_ode(u_optimal, [0.0, 0.0], D2D.dt)
@@ -70,7 +83,6 @@ target = np.reshape(target, (-1, 2))
 ctrl = np.reshape(ctrl, (-1, 2))
 
 plt.figure()
-
 plt.subplot(1, 2, 1)
 plt.plot(state[:, 0], state[:, 1], 'k', label = 'trajectory')
 plt.plot(target[:, 0], target[:, 1], 'or', label = 'target')

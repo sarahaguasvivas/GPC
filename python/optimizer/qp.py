@@ -148,7 +148,7 @@ class QP(Optimizer):
 
         pred = np.reshape(sub_prod, (-1, 2))
         Err = target - np.array(pred)
-
+        dynamics.Cost.cost = np.linalg.norm(Err[0, :])
  #       if dynamics.umax is not None and dynamics.umin is not None:
  #           G, h = self._inequality_constraints(dynamics.N, Nx, Nu, dynamics.xmin, \
  #                               dynamics.xmax, dynamics.umin, dynamics.umax)

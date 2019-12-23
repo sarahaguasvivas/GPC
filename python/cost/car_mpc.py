@@ -26,10 +26,7 @@ class Driver2DCost(Cost):
         self.ym = self.d_model.ym
         self.yn = self.d_model.yn
 
-        eta_diff = np.array(self.yn) - np.array(self.yn)
-
-        Q = self.d_model.Q
-        R = self.d_model.R
+        eta_diff = np.array(self.yn) - np.array(self.d_model.state)
 
         Del_u = np.reshape(del_u, (-1, 2))
 
