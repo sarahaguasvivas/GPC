@@ -146,7 +146,7 @@ class Driver2DMPC(DynamicModel):
 
     def get_optimal_control(self, QP, state, u):
         dynamics = self
-        x, Del_U = QP.optimize(dynamics = dynamics, state = state, u0 = u)
+        Del_U = QP.optimize(dynamics = dynamics, state = state, u0 = u)
         return Del_U
 
     def compute_cost(self, u, del_u):

@@ -77,6 +77,9 @@ class QP(Optimizer):
         According to https://borrelli.me.berkeley.edu/pdfpub/pub-6.pdf,
         predictions happen as:
 
+
+        I will be using Equation (20) from this paper to get those matrices
+
             Y = C_k * xi_hat + theta_k * del_u_k
             J = del_u_k.T * Hk del_u_k - del_u_k.T G_k + const
 
@@ -86,59 +89,90 @@ class QP(Optimizer):
 
             error = y_ref - C_k @ xi_hat
         """
-        Ad, Bd, Ck, Dk = dynamics._get_FGHM(state, u0)
 
-        [nx, nu] = Bd.shape
+        [Nx, Nu] = len(state), len(u0)
 
-        # Made some modifications to match the required sizes
-        Hk = scipy.linalg.block_diag(np.kron(np.eye(dynamics.N * nu), dynamics.R), \
-                np.kron(np.eye((dynamics.N - 1)* nu), dynamics.Q), np.eye(nx - nu))
+        Nc = dynamics.Nc
+        N = dynamics.N
+        pred_state = state
 
-        print("Hk: ", Hk.shape)
-#        Re = dynamics.R * np.eye(2)
-#        Qe = scipy.linalg.block_diag(dynamics.Q, dynamics.Q, dynamics.Q)
-#        Hk = Dk.T @ Qe @ Dk + Re
+        Theta = np.zeros((N, Nc, Nu, Nu)) # matrix theta from Eqn (20)
+        Phi = np.zeros((N, 2, Nx))
+        x_pred = []
+        A_pred = [] # this is A matrices N times
+        for _ in range(N):
+            F, G, H, M = dynamics._get_FGHM(pred_state, [0.0, 0.0]) # what's the state w/o any moves
+            A_pred+=[F.tolist()]
+            pred_state= np.add(np.dot(F, pred_state), np.dot(G, [0,0]))
+            x_pred+= [pred_state.tolist()]
+        A_pred = np.array(A_pred)
 
-        Aeu = np.kron(np.eye(dynamics.N), - Bd)
+        pred_state = state # restart
+        B_pred = []
 
-        Aex = scipy.linalg.block_diag(np.eye((dynamics.N - 1)*nx), np.eye(nx))
-        Aex -= np.kron(np.diag([1.0]*(dynamics.N-1), k=-1), Ad)
+        for _ in range(N):
+            F, G, H, M = dynamics._get_FGHM(pred_state, [0.0, 0.0]) # what's the state w/o any moves
+            pred_state= np.add(np.dot(F, pred_state), np.dot(G, [0,0]))
+            B_pred += [G.tolist()]
+        B_pred = np.array(B_pred)
 
-        Ae = np.hstack((Aeu, Aex))
+        Ck = H # doesn't change
+        Dk = M
 
-        be = np.vstack((Ad, np.zeros(((dynamics.N-1)*nx, \
-                        nx)))) @ np.reshape(state, (-1, 1))
+        for i in range(N):
+            sub_prod = np.eye(Nx) # temp product (neutral element mult)
+            for j in range(Nc):
+                if i <= j: # sub diagonal
+                    for k in range(j, i):
+                        sub_prod = sub_prod @ A_pred[k, :, :]
+                    Theta[i, j, :, :] = Ck @ sub_prod @ B_pred[i+Nc-1, :, :]
+
+        for i in range(N):
+            sub_prod = np.eye(Nx)
+            for j in range(i):
+                sub_prod = sub_prod @ A_pred[j, :, :]
+            Phi[i, :, :] = Ck @ sub_prod
+
+        Theta = Theta[0, 0, :, :]
+
+        Hk = Theta.T @ dynamics.Q @ Theta + dynamics.R
+
+        x_pred = np.array(x_pred)
+        target = np.reshape(np.tile(dynamics.ym, N), (-1, 2))
+
+        sub_prod= []
+        for i in range(N):
+            prod = Phi[i, :, :] @ np.reshape(x_pred[i, :], (-1, 1))
+            prod = np.reshape(prod, (1, -1)).tolist()
+            sub_prod += prod
+
+        pred = np.reshape(sub_prod, (-1, 2))
+        Err = target - np.array(pred)
+
+ #       if dynamics.umax is not None and dynamics.umin is not None:
+ #           G, h = self._inequality_constraints(dynamics.N, Nx, Nu, dynamics.xmin, \
+ #                               dynamics.xmax, dynamics.umin, dynamics.umax)
+
+        Gk = 2.0 * Theta.T @ dynamics.Q @ Err.T
+
+        print(Hk.shape, Gk.shape)
 
         P = matrix(Hk)
-
         q = matrix(np.zeros((Hk.shape[0], 1)))
+        G = matrix(Gk.T)
+        h = matrix(np.zeros((Gk.shape[1], 1)))
 
-        Ad = matrix(Ae)
-        b = matrix(be)
-
-        if dynamics.umax is not None and dynamics.umin is not None:
-            G, h = self._inequality_constraints(dynamics.N, nx, nu, dynamics.xmin, \
-                                dynamics.xmax, dynamics.umin, dynamics.umax)
-
-        print(Hk.shape, (Hk.shape[0], 1), G.shape, h.shape)
-
-        G = matrix(G)
-        h = matrix(h)
+        Ad = None
+        b  = None
 
         if dynamics.umax is not None and dynamics.umin is not None:
             sol = cvxopt.solvers.qp(P, q, G, h, A = Ad, b = b)
         else:
-            sol = cvxopt.solvers.gp(P, q, A = Ad, b = b)
+            sol = cvxopt.solvers.qp(P, q, A = Ad, b = b)
 
         fx = np.array(sol["x"])
-        N = dynamics.N
-        u_optimal = fx[0:N*nu].reshape(N, nu).T
-        x = fx[-N*nx:].reshape(N, nx).T
-        state = np.reshape(state, (1, -1))
-        x = np.vstack((state, x.T))
-        u1 , u2 = u_optimal
-        u_optimal = u1[:2]
-        return x, u_optimal
+        u_optimal = np.reshape(fx[0:N*Nu, :], (Nc, Nu))
+        return u_optimal
 
 
 

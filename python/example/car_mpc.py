@@ -50,7 +50,7 @@ ctrl=[]
 
 for i in range(MAX_SIM_STEPS):
 
-    D2D.ym = [2., 2.]
+    D2D.ym = [1., 1.]
     D2D.state = state_new_ode
     state_new_linear = D2D.predict(u_optimal)
 
