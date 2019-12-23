@@ -15,7 +15,7 @@ MAX_SIM_STEPS = 1000
 TARGET_THRESHOLD = 0.2
 
 Q = np.array([[200, 0], [0, 10.]]) # 3x3 in paper need to check
-R = 5e4
+R = 5e4* np.eye(2)
 N = 5
 Nc = 1
 mu = 0.3
@@ -47,8 +47,7 @@ ode = []
 linear = []
 
 for i in range(MAX_SIM_STEPS):
-    u_optimal[0] = 0.0
-    u_optimal[1] = np.pi/4.0 * np.sin(i / D2D.dt)
+
     D2D.ym = [2., 2.]
     D2D.state = state_new_ode
     state_new_linear = D2D.predict(u_optimal)
@@ -56,6 +55,9 @@ for i in range(MAX_SIM_STEPS):
     state_new_ode = D2D.predict_ode(u_optimal, [0.0, 0.0], D2D.dt)
 
     del_u = D2D.get_optimal_control(QP, state_new_ode, u_optimal)
+
+    #u_optimal[0] =
+    #u_optimal[1] =
 
     print(state_new_ode, state_new_linear)
 

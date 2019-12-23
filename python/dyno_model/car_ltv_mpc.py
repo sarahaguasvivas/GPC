@@ -43,15 +43,8 @@ class Driver2DMPC(DynamicModel):
         else:
             self.umax = umax
 
-        if xmin is None:
-            self.xmin = [-np.inf]*6
-        else:
-            self.xmin = xmin
-
-        if xmax is None:
-            self.xmax = [np.inf]*6
-        else:
-            self.xmax = xmax
+        self.xmin = xmin
+        self.xmax = xmax
 
         if Q is None:
             self.Q = np.eye(2)
