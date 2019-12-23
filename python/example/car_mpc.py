@@ -58,6 +58,8 @@ for i in range(MAX_SIM_STEPS):
 
     del_u = D2D.get_optimal_control(QP, state_new_ode, u_optimal)
 
+    print("u_optimal : ", del_u)
+
     state+=[D2D.state]
     target+= [D2D.ym]
     ctrl+=[del_u]
@@ -76,7 +78,7 @@ plt.legend()
 plt.subplot(1, 2, 2)
 plt.plot(ctrl[:, 0], 'b', label = 'acceleration')
 plt.plot(ctrl[:, 1], 'k', label = 'steering')
-
+plt.legend()
 plt.show()
 
 

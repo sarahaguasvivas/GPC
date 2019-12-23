@@ -94,6 +94,7 @@ class QP(Optimizer):
         Hk = scipy.linalg.block_diag(np.kron(np.eye(dynamics.N * nu), dynamics.R), \
                 np.kron(np.eye((dynamics.N - 1)* nu), dynamics.Q), np.eye(nx - nu))
 
+        print("Hk: ", Hk.shape)
 #        Re = dynamics.R * np.eye(2)
 #        Qe = scipy.linalg.block_diag(dynamics.Q, dynamics.Q, dynamics.Q)
 #        Hk = Dk.T @ Qe @ Dk + Re
