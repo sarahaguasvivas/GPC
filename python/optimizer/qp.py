@@ -136,7 +136,7 @@ class QP(Optimizer):
         state = np.reshape(state, (1, -1))
         x = np.vstack((state, x.T))
         u1 , u2 = u_optimal
-        print("size of u_opt: ", u1.shape, u2.shape)
+        u_optimal = u1[:2]
         return x, u_optimal
 
 
