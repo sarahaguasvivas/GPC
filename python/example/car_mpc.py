@@ -58,8 +58,9 @@ for i in range(MAX_SIM_STEPS):
 
     del_u = D2D.get_optimal_control(QP, state_new_ode, u_optimal)
 
-    print("u_optimal : ", del_u)
+    u_optimal = np.array(u_optimal) + np.array(del_u)
 
+    u_optimal = u_optimal[0]
     state+=[D2D.state]
     target+= [D2D.ym]
     ctrl+=[del_u]
@@ -77,8 +78,8 @@ plt.plot(start[0], start[1], 'ob', label ='start')
 plt.legend()
 
 plt.subplot(1, 2, 2)
-plt.plot(ctrl[:, 0], 'b', label = 'acceleration')
-plt.plot(ctrl[:, 1], 'k', label = 'steering')
+plt.plot(ctrl[:, 0], 'b', label = 'delta acceleration')
+plt.plot(ctrl[:, 1], 'k', label = 'delta steering')
 plt.legend()
 plt.show()
 
