@@ -91,12 +91,12 @@ class QP(Optimizer):
         [nx, nu] = Bd.shape
 
         # Made some modifications to match the required sizes
-        #H = scipy.linalg.block_diag(np.kron(np.eye(dynamics.N * nu), dynamics.R), \
-        #        np.kron(np.eye((dynamics.N - 1)* nu), dynamics.Q), np.eye(nx - nu))
+        Hk = scipy.linalg.block_diag(np.kron(np.eye(dynamics.N * nu), dynamics.R), \
+                np.kron(np.eye((dynamics.N - 1)* nu), dynamics.Q), np.eye(nx - nu))
 
-        Re = dynamics.R * np.eye(2)
-        Qe = scipy.linalg.block_diag(dynamics.Q, dynamics.Q, dynamics.Q)
-        Hk = Dk.T @ Qe @ Dk + Re
+#        Re = dynamics.R * np.eye(2)
+#        Qe = scipy.linalg.block_diag(dynamics.Q, dynamics.Q, dynamics.Q)
+#        Hk = Dk.T @ Qe @ Dk + Re
 
         Aeu = np.kron(np.eye(dynamics.N), - Bd)
 
@@ -108,9 +108,9 @@ class QP(Optimizer):
         be = np.vstack((Ad, np.zeros(((dynamics.N-1)*nx, \
                         nx)))) @ np.reshape(state, (-1, 1))
 
-        P = matrix(H)
+        P = matrix(Hk)
 
-        q = matrix(np.zeros((H.shape[0], 1)))
+        q = matrix(np.zeros((Hk.shape[0], 1)))
 
         Ad = matrix(Ae)
         b = matrix(be)
@@ -119,7 +119,7 @@ class QP(Optimizer):
             G, h = self._inequality_constraints(dynamics.N, nx, nu, dynamics.xmin, \
                                 dynamics.xmax, dynamics.umin, dynamics.umax)
 
-        print(H.shape, (H.shape[0], 1), G.shape, h.shape)
+        print(Hk.shape, (Hk.shape[0], 1), G.shape, h.shape)
 
         G = matrix(G)
         h = matrix(h)
