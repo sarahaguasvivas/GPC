@@ -11,28 +11,29 @@ xmax = None
 umin = [-5., -np.pi/4.0]
 umax = [10., np.pi/4.0]
 
-MAX_SIM_STEPS = 1000
-TARGET_THRESHOLD = 1.
+MAX_SIM_STEPS = 10
+TARGET_THRESHOLD = 3.
 
-Q = np.array([[200, 0], [0, 10.]]) # 3x3 in paper need to check
-R = 5e4* np.eye(2)
+Q = np.array([[200., 0], [0, 10.]]) # 3x3 in paper need to check
+R = 5e4
 N = 5
 Nc = 1
 mu = 0.3
-T = 0.1
+T = 0.05
 rho = 1e3
-Radius = 15. # m
+Radius = 150. # m
 #########################################################
 
 # Using parameters in Predictive Active Steering Control for Autonomous Vehicle Systems;
 # https://borrelli.me.berkeley.edu/pdfpub/pub-2.pdf
+
 D2D = Driver2DMPC(N = N, Nc = Nc, dt = T, mu = mu, rho = rho, \
                             umin = umin, umax= umax, xmin = xmin,\
                                     xmax = xmax, Q=Q, R=R)
 Cost = Driver2DCost(D2D)
 QP = QP()
 
-u_optimal = np.array([10.0, 0.0])
+u_optimal = np.array([15.0, 0.0])
 
 state_new_ode = np.random.multivariate_normal(mean = [0.0]*6, cov = 1.*np.eye(6), size = 1).flatten().tolist()
 
@@ -54,16 +55,20 @@ ctrl=[]
 way_point = 0
 for i in range(MAX_SIM_STEPS):
 
-    print(D2D.Cost.cost)
+    print("Cost : ", D2D.Cost.cost)
+    print("state : ", D2D.state[:2])
+    print("target : ", D2D.ym)
 
     if (D2D.Cost.cost < TARGET_THRESHOLD) and i>0:
         way_point +=1
-        starting_state= D2D.state[:2]
+        starting_state = D2D.state[:2]
 
-    D2D.ym = [Radius * np.cos((way_point + 5)/100 - np.pi/2.0), \
-                Radius * np.sin((way_point + 5)/100 - np.pi/2.0)]
+    D2D.ym = [Radius * np.cos((way_point + 5)/10000 - np.pi/2.0), \
+                Radius * np.sin((way_point + 5)/10000 - np.pi/2.0)]
 
     D2D.state = state_new_ode
+
+    D2D.compute_cost()
 
     state_new_linear = D2D.predict(u_optimal)
 
@@ -74,6 +79,7 @@ for i in range(MAX_SIM_STEPS):
     u_optimal = np.array(u_optimal) + np.array(del_u)
 
     u_optimal = u_optimal[0]
+
     state+=[D2D.state]
     target+= [D2D.ym]
     ctrl+=[del_u]

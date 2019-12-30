@@ -3,7 +3,7 @@ from dyno_model.car_driver_2D import *
 import constraints.constraints as constraints
 
 class Driver2DCost(Cost):
-    def __init__(self, dynamic_model):
+    def __init__(self, d_model):
         """
         N1      : minimum costing horizon
         N2      : maximum costing horizon
@@ -13,27 +13,18 @@ class Driver2DCost(Cost):
         r       : range of constraint
         b       : offset of the range
         """
-        self.d_model = dynamic_model
+        self.d_model = d_model
         self.cost= 0.0
         super().__init__()
 
-    def compute_cost(self, u : list, del_u : list):
+    def compute_cost(self):
         """
         del_u is a list of the element wise differences between current and
         previous control inputs
         n is an int that represents the current discrete timestep
         """
-        self.ym = self.d_model.ym
-        self.yn = self.d_model.yn
-
-        eta_diff = np.array(self.yn) - np.array(self.d_model.state)
-
-        Del_u = np.reshape(del_u, (-1, 2))
-
-        self.cost= np.dot(np.dot(np.dot(eta_diff.T ,  Q.T) , Q ) , eta_diff) + \
-                            np.dot(np.dot(np.dot(np.array(Del_u).T,R.T) , R), Del_u)
-
-        print("Cost: ",  self.cost)
+        eta_diff = np.array(self.d_model.ym) - np.array(self.d_model.measure())
+        self.cost = np.linalg.norm(eta_diff)
         return self.cost
 
 

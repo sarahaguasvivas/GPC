@@ -111,7 +111,6 @@ class Driver2DMPC(DynamicModel):
             Sum = np.add(Sum, (Acum*self.dt**(i)/np.math.factorial(i)))
             Acum = np.dot(Acum, A)
         Gk = np.dot(Sum, B)
-
         return Fk, Gk, Hk, Mk
 
     def predict_trajectory(self, u, del_u):
@@ -127,7 +126,8 @@ class Driver2DMPC(DynamicModel):
         for i in range(self.N):
             if i < self.Nc:
                 F, G, H, M = self._get_FGHM(state, u + del_u[i])
-                state = np.add(np.dot(F, state), np.dot(G, u + del_u[i])).tolist()
+                state = np.add(np.dot(F, state), \
+                            np.dot(G, u + del_u[i])).tolist()
                 u = u + del_u[i]
                 predicted_trajectory+=[state]
             else:
@@ -136,6 +136,10 @@ class Driver2DMPC(DynamicModel):
                 state = np.add(np.dot(F, state), np.dot(G, u)).tolist()
                 predicted_trajectory += [state]
         return predicted_trajectory
+
+
+    def measure(self):
+        return [self.state[0], self.state[1]]
 
     def predict_measurements(self, predicted_trajectory):
         H = np.zeros((2, 6))
@@ -149,8 +153,8 @@ class Driver2DMPC(DynamicModel):
         Del_U = QP.optimize(dynamics = dynamics, state = state, u0 = u)
         return Del_U
 
-    def compute_cost(self, u, del_u):
-        return self.Cost.compute_cost(u, del_u)
+    def compute_cost(self):
+        return self.Cost.compute_cost()
 
     def __update_cornering_forces(self, state, u):
         """
