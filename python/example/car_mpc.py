@@ -7,17 +7,18 @@ import matplotlib.pyplot as plt
 ############### TUNING PARAMS: ##########################
 xmin = None
 xmax = None
+
 " u = [accel, steering]"
 umin = [-5., -np.pi/4.0]
 umax = [10., np.pi/4.0]
 
-MAX_SIM_STEPS = 10
-TARGET_THRESHOLD = 3.
+MAX_SIM_STEPS = 1000
+TARGET_THRESHOLD = 0.5
 
-Q = np.array([[200., 0], [0, 10.]]) # 3x3 in paper need to check
+Q = np.array([[2e2, 0], [0, 1e1]]) # 3x3 in paper need to check
 R = 5e4
-N = 5
-Nc = 1
+N = 25
+Nc = 10
 mu = 0.3
 T = 0.05
 rho = 1e3
@@ -33,16 +34,13 @@ D2D = Driver2DMPC(N = N, Nc = Nc, dt = T, mu = mu, rho = rho, \
 Cost = Driver2DCost(D2D)
 QP = QP()
 
-u_optimal = np.array([15.0, 0.0])
+u_optimal = np.array([5.0, 0.0])
 
-state_new_ode = np.random.multivariate_normal(mean = [0.0]*6, cov = 1.*np.eye(6), size = 1).flatten().tolist()
-
-state_new_ode[0] = 0.0
-state_new_ode[1] = -Radius
-state_new_ode[4] = 0.0
+state_new_ode = [0.0, -Radius, 0.0, 0.0, 0.0, 0.0]
 
 start= [state_new_ode[0], state_new_ode[1]]
 state_new_linear = state_new_ode
+
 D2D.state = state_new_ode
 
 start_state = state_new_linear
@@ -53,79 +51,54 @@ state = []
 ctrl=[]
 
 way_point = 0
+
 for i in range(MAX_SIM_STEPS):
 
     print("Cost : ", D2D.Cost.cost)
     print("state : ", D2D.state[:2])
     print("target : ", D2D.ym)
 
-    if (D2D.Cost.cost < TARGET_THRESHOLD) and i>0:
-        way_point +=1
+    if (D2D.Cost.cost < TARGET_THRESHOLD) and i > 0:
+        way_point += 10
         starting_state = D2D.state[:2]
 
-    D2D.ym = [Radius * np.cos((way_point + 5)/10000 - np.pi/2.0), \
-                Radius * np.sin((way_point + 5)/10000 - np.pi/2.0)]
+    D2D.ym = [Radius * np.cos((way_point + 5)/100 - np.pi/2.0), \
+                Radius * np.sin((way_point + 5)/100 - np.pi/2.0)]
 
-    D2D.state = state_new_ode
+    # Making Move:
+    D2D.state = D2D.predict_ode(u_optimal, [0.0, 0.0], D2D.dt)
 
     D2D.compute_cost()
 
-    state_new_linear = D2D.predict(u_optimal)
+    state_new_ode = D2D.state
 
-    state_new_ode = D2D.predict_ode(u_optimal, [0.0, 0.0], D2D.dt)
-
-    del_u = D2D.get_optimal_control(QP, state_new_ode, u_optimal)
+    del_u = D2D.get_optimal_control(QP, D2D.state, [0.0, 0.0])
 
     u_optimal = np.array(u_optimal) + np.array(del_u)
 
     u_optimal = u_optimal[0]
 
-    state+=[D2D.state]
-    target+= [D2D.ym]
-    ctrl+=[del_u]
+    state  += [D2D.state]
+    target += [D2D.ym]
+    ctrl += [u_optimal]
 
 state = np.reshape(state, (-1, 6))
 target = np.reshape(target, (-1, 2))
 ctrl = np.reshape(ctrl, (-1, 2))
 
 plt.figure()
-plt.subplot(1, 2, 1)
-plt.plot(state[:, 0], state[:, 1], 'k', label = 'trajectory')
+plt.subplot(1, 3, 1)
 plt.plot(target[:, 0], target[:, 1], 'or', label = 'target')
+plt.plot(state[:, 0], state[:, 1], 'k', label = 'trajectory')
 plt.plot(start[0], start[1], 'ob', label ='start')
 plt.legend()
 
-plt.subplot(1, 2, 2)
+plt.subplot(1, 3, 2)
 plt.plot(ctrl[:, 0], 'b', label = 'delta acceleration')
-plt.plot(ctrl[:, 1], 'k', label = 'delta steering')
+plt.legend()
+
+plt.subplot(1,3,3)
+plt.plot(ctrl[:, 1], 'b', label = 'delta steering')
 plt.legend()
 plt.show()
-
-
-
-#labels = ['$x$', '$y$', '$\dot{x}$', '$\dot{y}$', '$\psi$', '$\dot{\psi}$']
-#
-#plt.figure()
-#plt.title('Linearized States vs. ODE States at dt = ' + str(D2D.dt) + ' sec')
-#
-#for i in range(6):
-#    plt.subplot(6, 2, 2*i + 1)
-#    plt.plot(D2D.dt*np.arange(MAX_SIM_STEPS), ode[:, i], label='ode')
-#    plt.plot(D2D.dt*np.arange(MAX_SIM_STEPS), linear[:, i], label='linear')
-#    plt.ylabel(labels[i])
-#    max_ = np.max(ode[:, i])
-#    min_ = np.min(ode[:, i])
-#    plt.ylim((min_ - 10, max_ + 10))
-#    plt.legend()
-#
-#for i in range(6):
-#    plt.subplot(6, 2, 2*i + 2)
-#    plt.plot(D2D.dt*np.arange(MAX_SIM_STEPS), errors[:, i],'k')
-#    plt.ylabel('error in ' + labels[i])
-#plt.show()
-
-
-
-
-
 
