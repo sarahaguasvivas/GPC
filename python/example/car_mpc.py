@@ -13,16 +13,17 @@ umin = [-5., -np.pi/4.0]
 umax = [10., np.pi/4.0]
 
 MAX_SIM_STEPS = 1000
-TARGET_THRESHOLD = 0.5
+TARGET_THRESHOLD = 10.0
 
-Q = np.array([[2e2, 0], [0, 1e1]]) # 3x3 in paper need to check
-R = 5e4
+Q = np.array([[30., 0], [0, 10.]]) # 3x3 in paper need to check
+R = 5e4*np.eye(2)
 N = 25
 Nc = 10
 mu = 0.3
 T = 0.05
 rho = 1e3
 Radius = 150. # m
+
 #########################################################
 
 # Using parameters in Predictive Active Steering Control for Autonomous Vehicle Systems;
@@ -59,11 +60,11 @@ for i in range(MAX_SIM_STEPS):
     print("target : ", D2D.ym)
 
     if (D2D.Cost.cost < TARGET_THRESHOLD) and i > 0:
-        way_point += 10
+        way_point += 25
         starting_state = D2D.state[:2]
 
-    D2D.ym = [Radius * np.cos((way_point + 5)/100 - np.pi/2.0), \
-                Radius * np.sin((way_point + 5)/100 - np.pi/2.0)]
+    D2D.ym = [Radius * np.cos((way_point + 5)/1000 - np.pi/2.0), \
+                Radius * np.sin((way_point + 5)/1000 - np.pi/2.0)]
 
     # Making Move:
     D2D.state = D2D.predict_ode(u_optimal, [0.0, 0.0], D2D.dt)

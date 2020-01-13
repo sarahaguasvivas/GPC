@@ -100,6 +100,7 @@ class QP(Optimizer):
         Phi = np.zeros((N, 2, Nx))
         x_pred = []
         A_pred = [] # this is A matrices N times
+
         for _ in range(N):
             F, G, H, M = dynamics._get_FGHM(pred_state, [0.0, 0.0]) # what's the state w/o any moves
             A_pred+=[F.tolist()]
@@ -150,19 +151,23 @@ class QP(Optimizer):
 
         Err = target - np.array(pred)
 
- #       if dynamics.umax is not None and dynamics.umin is not None:
- #           G, h = self._inequality_constraints(dynamics.N, Nx, Nu, dynamics.xmin, \
- #                               dynamics.xmax, dynamics.umin, dynamics.umax)
+        #if dynamics.umax is not None and dynamics.umin is not None:
+        #    Ad, b = self._inequality_constraints(dynamics.N, Nx, Nu, dynamics.xmin, \
+        #                        dynamics.xmax, dynamics.umin, dynamics.umax)
 
-        Gk = 2.0 * Theta.T @ dynamics.Q @ Err.T
+        Gk = -  2.0 * Theta.T @ dynamics.Q @ Err.T
 
         P = matrix(Hk)
         q = matrix(np.zeros((Hk.shape[0], 1)))
         G = matrix(Gk.T)
         h = matrix(np.zeros((Gk.shape[1], 1)))
 
+       # Ad = Err @ dynamics.Q @ Err.T
+       # b  = np.zeros((Ad.shape[0], 1))
+       # Ad = matrix(Ad)
+       # b = matrix(b)
         Ad = None
-        b  = None
+        b = None
 
         if dynamics.umax is not None and dynamics.umin is not None:
             sol = cvxopt.solvers.qp(P, q, G, h, A = Ad, b = b)
@@ -170,7 +175,9 @@ class QP(Optimizer):
             sol = cvxopt.solvers.qp(P, q, A = Ad, b = b)
 
         fx = np.array(sol["x"])
-        u_optimal = np.reshape(fx[0:N*Nu, :], (Nc, Nu))
+
+        u_optimal = np.reshape(fx[0:N*Nu, :], (-1, Nu))
+
         return u_optimal
 
 
