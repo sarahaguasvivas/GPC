@@ -9,21 +9,20 @@ xmin = None
 xmax = None
 
 " u = [accel, steering]"
-umin = [-5., -np.pi/4.0]
+umin = [-10., -np.pi/4.0]
 umax = [10., np.pi/4.0]
 
-MAX_SIM_STEPS = 1000
-TARGET_THRESHOLD = 10.0
+MAX_SIM_STEPS = 100
+TARGET_THRESHOLD = 5.
 
-Q = np.array([[30., 0], [0, 10.]]) # 3x3 in paper need to check
-R = 5e4*np.eye(2)
-N = 25
-Nc = 10
+Q = np.array([[150., 0], [0, 10.]]) # 3x3 in paper need to check
+R = 9e-1*np.eye(2)
+N = 10
+Nc = 5
 mu = 0.3
 T = 0.05
 rho = 1e3
-Radius = 150. # m
-
+Radius = 15. # m
 #########################################################
 
 # Using parameters in Predictive Active Steering Control for Autonomous Vehicle Systems;
@@ -35,7 +34,7 @@ D2D = Driver2DMPC(N = N, Nc = Nc, dt = T, mu = mu, rho = rho, \
 Cost = Driver2DCost(D2D)
 QP = QP()
 
-u_optimal = np.array([5.0, 0.0])
+u_optimal = np.array([10.0, 0.1])
 
 state_new_ode = [0.0, -Radius, 0.0, 0.0, 0.0, 0.0]
 
@@ -60,14 +59,14 @@ for i in range(MAX_SIM_STEPS):
     print("target : ", D2D.ym)
 
     if (D2D.Cost.cost < TARGET_THRESHOLD) and i > 0:
-        way_point += 25
+        way_point += 10.
         starting_state = D2D.state[:2]
 
-    D2D.ym = [Radius * np.cos((way_point + 5)/1000 - np.pi/2.0), \
-                Radius * np.sin((way_point + 5)/1000 - np.pi/2.0)]
+    D2D.ym = [Radius * np.cos((way_point + 5)/100 - np.pi/2.0), \
+                Radius * np.sin((way_point + 5)/100 - np.pi/2.0)]
 
     # Making Move:
-    D2D.state = D2D.predict_ode(u_optimal, [0.0, 0.0], D2D.dt)
+    D2D.state = D2D.predict_ode(u_optimal, del_u, D2D.dt)
 
     D2D.compute_cost()
 
@@ -75,7 +74,7 @@ for i in range(MAX_SIM_STEPS):
 
     del_u = D2D.get_optimal_control(QP, D2D.state, [0.0, 0.0])
 
-    u_optimal = np.array(u_optimal) + np.array(del_u)
+    u_optimal = np.array(u_optimal) + 100*np.array(del_u)
 
     u_optimal = u_optimal[0]
 
@@ -90,7 +89,7 @@ ctrl = np.reshape(ctrl, (-1, 2))
 plt.figure()
 plt.subplot(1, 3, 1)
 plt.plot(target[:, 0], target[:, 1], 'or', label = 'target')
-plt.plot(state[:, 0], state[:, 1], 'k', label = 'trajectory')
+plt.plot(state[:, 0], state[:, 1], 'k', label = 'trajectory', linewidth = 2, alpha = 0.2)
 plt.plot(start[0], start[1], 'ob', label ='start')
 plt.legend()
 

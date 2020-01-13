@@ -155,7 +155,7 @@ class QP(Optimizer):
         #    Ad, b = self._inequality_constraints(dynamics.N, Nx, Nu, dynamics.xmin, \
         #                        dynamics.xmax, dynamics.umin, dynamics.umax)
 
-        Gk = -  2.0 * Theta.T @ dynamics.Q @ Err.T
+        Gk = 2.0 * Theta.T @ dynamics.Q @ Err.T
 
         P = matrix(Hk)
         q = matrix(np.zeros((Hk.shape[0], 1)))
@@ -170,14 +170,14 @@ class QP(Optimizer):
         b = None
 
         if dynamics.umax is not None and dynamics.umin is not None:
-            sol = cvxopt.solvers.qp(P, q, G, h, A = Ad, b = b)
+            sol = cvxopt.solvers.qp(P, q, G, h, A = Ad, b = b, verbose=False)
         else:
             sol = cvxopt.solvers.qp(P, q, A = Ad, b = b)
 
         fx = np.array(sol["x"])
 
         u_optimal = np.reshape(fx[0:N*Nu, :], (-1, Nu))
-
+        print("u_optimal : ", u_optimal)
         return u_optimal
 
 
