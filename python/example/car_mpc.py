@@ -12,11 +12,11 @@ xmax = None
 umin = [-10., -np.pi/4.0]
 umax = [10., np.pi/4.0]
 
-MAX_SIM_STEPS = 100
-TARGET_THRESHOLD = 5.
+MAX_SIM_STEPS = 110
+TARGET_THRESHOLD = 5.8
 
-Q = np.array([[150., 0], [0, 10.]]) # 3x3 in paper need to check
-R = 9e-1*np.eye(2)
+Q = np.array([[145, 0], [0, 10.]]) # 3x3 in paper need to check
+R = 0.9*np.eye(2)
 N = 10
 Nc = 5
 mu = 0.3
@@ -34,7 +34,7 @@ D2D = Driver2DMPC(N = N, Nc = Nc, dt = T, mu = mu, rho = rho, \
 Cost = Driver2DCost(D2D)
 QP = QP()
 
-u_optimal = np.array([10.0, 0.1])
+u_optimal = np.array([9.9, 0.1])
 
 state_new_ode = [0.0, -Radius, 0.0, 0.0, 0.0, 0.0]
 
